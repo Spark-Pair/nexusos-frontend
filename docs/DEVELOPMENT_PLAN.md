@@ -17,73 +17,80 @@ Exit: a minimal accessible boot screen works online and after a warmed offline r
 
 ## 2. Application shell and role switcher
 
-- Add providers, routes, separate Customer/Business/Admin shells, responsive navigation, and not-found/forbidden states.
+- Add all Public/Authentication placeholders from `ROUTE_MAP.md`, providers, and separate Customer/Business/Admin shells with responsive navigation and not-found/forbidden states.
 - Implement a visibly development-only authentication adapter, active-context selection, typed roles, and permission policy. Never describe it as verified or production-secure.
 - Persist only safe active-context preferences.
+- Establish accessible URL-aware dialog/drawer foundations with Escape, focus trap/restore, duplicate-submit protection, and stronger destructive confirmation.
 
 Exit: permitted contexts route correctly and remain visually and structurally separated.
 
 ## 3. Customer onboarding
 
-- Approve fields and validation first.
-- Add resumable local drafts, completion state, repository/service boundaries, and accessible form steps.
+- Implement the specified seven steps: Welcome, Pakistani phone validation, labelled development OTP, profile, at-least-three interests, location/cities, notification preferences.
+- Add resumable drafts, local-versus-authoritative completion, repository/service boundaries, and accessible forms.
 - Test offline completion and recovery.
 
 ## 4. Customer discovery and following
 
-- Add discovery/search contracts, cached results, business summary/detail, and local follow/unfollow intents. Only backend acknowledgement marks a relationship synchronized.
-- Define location/category filters and empty/offline behavior.
+- Add all specified Discover sections, search scopes/filters, business profile/tabs, saved/recent content, location-permission and empty/offline states.
+- Add follow preferences, optimistic count/state, confirmed unfollow, and phone-privacy tests. Only backend acknowledgement marks synchronization.
 
 ## 5. Updates and product catalog
 
-- Add update feed and business product browsing with detail views, pagination policy, cache freshness, and offline states.
+- Add the separate Business Updates inbox with specified filters/actions/read/save/mute/hide/report behavior and filter-specific empty states.
+- Add product gallery, price/availability/variants/delivery/COD/return/related content and saved products.
 
 ## 6. Order request and customer orders
 
 - Approve pricing and order semantics.
-- Add UUID-backed local order drafts/requests, acknowledgement-aware status, lifecycle timeline, validation, cancellation rules, and conflicts. Backend-governed transitions remain pending until accepted.
+- Add all four request steps, delivery/payment/review fields, variant/price validation, UUID local reference, queue, and honest acknowledgement states.
+- Add order tabs/details/timeline/actions, reasoned cancellation, reorder/report, and conflicts. Server governs acceptance/final cancellation.
 
 ## 7. Customer chats
 
-- Add conversation list/detail and durable message drafts/queued delivery intents.
+- Add specified list metadata/filters and conversation text, product/order attachments, image placeholders, quick replies, search/mute/archive/local-delete, and durable message drafts/intents.
 - Clearly label simulated delivery; define attachment policy before implementing attachments.
 - Block/report controls remain unavailable backend capabilities or local drafts; never claim submission.
+- Complete Customer Profile saved content, follows, addresses, languages, privacy, blocked businesses, help, and safe confirmed logout.
 
 ## 8. Business onboarding and dashboard
 
-- Approve business fields and verification states.
-- Add workspace creation draft, business profile, and repository-backed actionable dashboard summaries.
+- Implement all eleven setup steps, supplied fields/types, verification placeholders/statuses, secure-file boundary, and queued submission.
+- Add every Overview metric/section/date filter/action with cached/stale/empty states.
 
 ## 9. Shared inbox and customers
 
-- Add permission-aware inbox queues, conversation assignment/status, customer directory/detail, notes, and safe offline edits.
+- Add specified inbox filters/list/history/context/actions and customer table/detail/filter/bulk contracts.
+- Enforce contact/privacy visibility and workspace isolation; shared assignments, exports, permissions, and realtime remain backend-bound.
 
 ## 10. Segments and campaigns
 
-- Add typed segment rules, provisional preview counts, campaign drafts, validation, approval requirements, and scheduling representation.
+- Add default segments, full condition set, simulated AND/OR, and non-authoritative previews.
+- Add campaign tabs/fields/actions, six-step creation, product/media ordering, exclusions, frequency/fair-use warnings, confirmations, and analytics.
 - Model consent, suppression, opt-out, block, frequency-cap, and duplicate-recipient precedence; local counts are non-authoritative.
 - Do not implement real campaign delivery.
 
 ## 11. Business products and orders
 
-- Add catalog CRUD, publication lifecycle, inventory representation if approved, order queues/detail, and allowed status transitions.
+- Add Business Update types/lifecycles/actions, catalog table/grid/bulk actions, and specified product form/validation/media-quota behavior.
+- Add all Business Order tabs/table/detail/actions, confirmations, timeline/tracking/assignment/print/export, and acknowledgement-gated shared transitions.
 
 ## 12. Analytics and integrations
 
-- Approve metric definitions.
-- Add period/filter controls, trustworthy empty states, and integration capability/status abstractions.
+- Add every analytics section/filter and loading/empty/error/cached/populated state; exact metric definitions remain unresolved.
+- Add specified providers, statuses, capabilities, setup placeholders, logs, and secure-credential boundary.
 - Do not collect real ERP credentials.
 
 ## 13. Team, billing and settings
 
-- Add team invitations, role grants, membership states, preferences, business settings, plans, and billing presentation.
+- Add specified team roles/fields/invites/actions/permission areas, editable profile, four plan concepts, fair-use/usage/billing, and every Settings section.
 - Do not capture payments.
 - Invitations, permission/subscription changes, exports, and deletion are backend-bound; local UI cannot claim completion.
 
 ## 14. Platform admin
 
-- Approve admin powers and audit requirements first.
-- Add dedicated admin routes, operational queues, account/business review tools, and audit presentation with strict permissions.
+- Implement only the supplied Dashboard, Verification, Moderation, Users, Businesses, and Plans/Fair Use routes/actions.
+- Require confirmation/reason/permission/backend acknowledgement/audit for verification, moderation, account, restriction, plan, and deletion actions.
 
 ## 15. Offline synchronization hardening
 
@@ -97,6 +104,7 @@ Exit: permitted contexts route correctly and remain visually and structurally se
 - Audit keyboard/screen-reader flows, contrast, motion preferences, touch targets, and target WCAG level.
 - Set and enforce bundle/runtime budgets, test low-end mobile and poor networks, review caching/privacy/security, and rehearse rollback/update behavior.
 - Approve the privacy notice, retention/deletion matrix, shared-device/logout policy, consent evidence, anti-spam rules, abuse workflow, and data-subject requests.
+- Verify every reusable-dialog behavior and component state, English/Urdu/Roman Urdu behavior, touch targets, and all three required end-state journeys.
 - Complete production monitoring, legal content, release checklist, and Vercel configuration.
 
 ## 17. Future Laravel API integration

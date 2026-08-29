@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NexusOS">
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <path d="M128 344V168h48l160 176h48V168h-56v91L168 168h-96v176z" fill="#f8fafc"/>
+</svg>

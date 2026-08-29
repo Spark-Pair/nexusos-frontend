@@ -4,7 +4,7 @@
 
 NexusOS is a SparkPair product: a mobile-first Business Connection Operating System initially designed for Karachi, Pakistan, with a path to broader Pakistani and international markets.
 
-This repository is currently in its planning phase. It intentionally contains no React scaffold or installed dependencies yet.
+The repository contains the completed Phase 1 production foundation. It intentionally contains only a placeholder shell—NexusOS business pages begin in later approved phases.
 
 ## Intended stack
 
@@ -35,12 +35,61 @@ These are planning boundaries, not yet implemented functionality. Real OTP, exte
 - [Development plan](docs/DEVELOPMENT_PLAN.md)
 - [Data models](docs/DATA_MODELS.md)
 - [Offline synchronization](docs/OFFLINE_SYNC.md)
+- [Route map](docs/ROUTE_MAP.md)
+- [Feature matrix](docs/FEATURE_MATRIX.md)
 
 ## Current status
 
-The next recommended step is Phase 1 in `docs/DEVELOPMENT_PLAN.md`: establish tooling and the production foundation, then verify linting, type-checking, tests, and a production build before adding product pages.
+Phase 1 provides strict tooling, app-level providers, typed public environment configuration, global error handling, connectivity state, a versioned Dexie shell, a persistent mutation-queue boundary, PWA installation/update handling, reusable foundation states, and automated tests.
 
-## Product-input notice
+The next approved step is Phase 2 in `docs/DEVELOPMENT_PLAN.md`: application shells and role switching.
 
-The initial brief referred to a complete product specification “supplied below,” but that detailed specification was not included. `docs/PRODUCT_SPEC.md` therefore distinguishes confirmed requirements from provisional assumptions and open decisions. Those decisions should be resolved before their implementation phase.
+## Requirements
 
+- Node.js 22 or newer
+- npm 11 or newer (npm is the repository package manager)
+
+## Setup
+
+```bash
+npm install
+copy .env.example .env.local
+npm run dev
+```
+
+On macOS or Linux, replace the `copy` command with `cp .env.example .env.local`.
+
+All `VITE_*` values are embedded in the browser bundle and must never contain secrets. Defaults allow local development without an environment file.
+
+## Commands
+
+```bash
+npm run dev        # Start the Vite development server
+npm run build      # Type-check and create the production build in dist/
+npm run preview    # Serve the production build locally
+npm run lint       # Run ESLint and verify Prettier formatting
+npm run typecheck  # Run strict TypeScript project checks
+npm run test       # Run Vitest in watch mode
+npm run test:run   # Run unit/component tests once
+npm run test:e2e   # Build first, then run the Playwright smoke suite against preview
+```
+
+Install Playwright's Chromium browser once on a new development machine:
+
+```bash
+npx playwright install chromium
+```
+
+## Architecture foundation
+
+- `src/app`: application bootstrap, providers, error boundary, and placeholder shell
+- `src/domain`: framework-independent contracts and sync mutation types
+- `src/infrastructure`: typed environment, Dexie, repositories, service composition, logging, and future HTTP boundary
+- `src/shared`: UI primitives, hooks, state, and global styling
+- `e2e`: Playwright smoke coverage, including nested-route refresh
+
+Vercel uses `vercel.json` to rewrite client-side routes to `index.html`. The service worker precaches the application shell so warmed routes can reopen offline. IndexedDB remains the durable structured-data boundary; the TanStack Query cache is not used as a database.
+
+## Product documentation status
+
+The complete product specification is recorded in `docs/PRODUCT_SPEC.md`, with canonical routes and feature traceability in `docs/ROUTE_MAP.md` and `docs/FEATURE_MATRIX.md`. Genuinely unresolved provider, policy, legal, pricing, permission, and protocol decisions remain listed without invented answers.

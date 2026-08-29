@@ -1,10 +1,12 @@
 # Dependencies and builds
 node_modules/
 dist/
+dev-dist/
 coverage/
 playwright-report/
 test-results/
 .vite/
+node_modules/.tmp/
 
 # Environment files (keep examples)
 .env
@@ -34,3 +36,5 @@ Thumbs.db
 # Local deployment metadata
 .vercel/
 
+# Playwright browser cache when configured locally
+.playwright/

@@ -24,8 +24,12 @@ src/
   domain/              # cross-feature domain contracts and identifiers
   infrastructure/      # db, repositories, HTTP, auth, sync, logging
   features/
+    public/
+    authentication/
     customer-onboarding/
     discovery/
+    following/
+    business-updates/
     catalog/
     orders/
     chats/
@@ -39,10 +43,14 @@ src/
     team/
     billing/
     settings/
+    notifications/
+    global-search/
     platform-admin/
 ```
 
 Each feature may contain `components`, `pages`, `application`, `domain`, `queries`, and `tests` as needed. Import through feature public APIs; avoid feature-to-feature internals and oversized global folders.
+
+Customer, Business, and Platform Admin features may share domain contracts and UI primitives but never import one another's pages, navigation, or authorization-context internals. Public/authentication routes form a fourth boundary. Canonical route ownership is defined in `ROUTE_MAP.md`.
 
 ## Repository pattern
 
@@ -87,6 +95,8 @@ Separate platform roles from business membership roles and customer identity. Re
 
 Durable records and query keys are partitioned by account and, where applicable, workspace. Context switches cancel in-flight work and prevent previous-scope data rendering. Membership removal requires a server signal and an approved local-cache cleanup policy.
 
+Business roles begin with Owner, Admin, Manager, Marketing, Sales, Customer support, Catalog manager, Analyst, and Custom; the exact grant matrix remains unresolved. Permission areas are Inbox, Customers, Campaigns, Products, Orders, Analytics, Integrations, Team, Billing, and Settings. Platform grants are separate and never implied by a business role.
+
 ## Privacy and abuse-prevention boundaries
 
 Define typed `ConsentRepository`, `SuppressionRepository`, `BlockRepository`, and `AbuseReportGateway` contracts. Local campaign previews evaluate known consent and suppression data, but only the backend authorizes recipient resolution and delivery. Suppression always wins over consent or segment inclusion.
@@ -108,6 +118,14 @@ Read `import.meta.env` only in one configuration module. Validate public values 
 ## PWA and caching
 
 `vite-plugin-pwa` owns manifest and service-worker generation. Cache immutable build assets precache-first. Apply explicit runtime strategies only to safe public assets and API GETs. Never cache authentication responses or sensitive data in Cache Storage. Version service worker and IndexedDB migrations independently and provide a safe update experience.
+
+Product/campaign image drafts use a dedicated quota-aware media repository, not entity rows or Cache Storage. It enforces approved type/size/compression limits, exposes quota failures, and never claims secure upload. Verification documents and integration credentials never use this browser media path.
+
+## Notifications, search, and demo data
+
+Shared notifications support actor-scoped local read state; push and event creation remain backend capabilities. Global search uses actor-specific indexes/result groups, never an unrestricted shared index. Small search history may use localStorage; searchable structured data stays in scoped IndexedDB repositories.
+
+Karachi examples use a distinct development dataset namespace/source. Reset Demo Data affects only that namespace. Demo configuration must be unavailable in production and never mix with synchronized records.
 
 ## Testing strategy
 

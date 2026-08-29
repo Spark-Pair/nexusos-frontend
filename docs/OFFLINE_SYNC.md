@@ -9,17 +9,19 @@ After one successful load, NexusOS should open on an unreliable or absent networ
 Dexie schema versions will define normalized tables and indexes. Initial planned tables are:
 
 - `users`, `customerProfiles`, `businesses`, `memberships`, `roles`
-- `follows`, `updates`, `products`
-- `orders`, `orderLines`
-- `conversations`, `messages`
+- `addresses`, `notificationPreferences`, `followPreferences`, `follows`
+- `updates`, `savedUpdates`, `products`, `productVariants`, `savedProducts`
+- `orders`, `orderLines`, `orderAddresses`, `orderTimelineEvents`
+- `conversations`, `messages`, `messageDrafts`
 - `businessCustomers`, `customerNotes`, `segments`, `campaigns`
-- `integrationConnections` and approved billing read models
+- `businessVerifications`, `teamInvitations`, `integrationConnections`, approved billing read models
+- `notifications`, `temporaryFiles`
 - `syncMutations`, `syncConflicts`, `syncCheckpoints`
 - `appMetadata` for schema/application coordination, never secrets
 
 Scope compound indexes by user/business as appropriate. Do not store large binary media in core entity rows; define a separate quota-aware media strategy before offline attachments.
 
-Add `communicationConsents`, `suppressions`, `blocks`, and `abuseReports` when those features begin. Every record has an account partition key and applicable workspace key; unscoped queries are invalid.
+Add `communicationConsents`, `suppressions`, `blocks`, and `abuseReports` when those features begin. Every record has an account partition key and applicable workspace key; unscoped queries are invalid. Demo records use a distinct development namespace/source and never mix with production records.
 
 ## Cache policy
 
@@ -29,9 +31,13 @@ Add `communicationConsents`, `suppressions`, `blocks`, and `abuseReports` when t
 - TanStack Query: in-memory coordination; never the sole durable cache.
 - `localStorage`: small non-sensitive preferences only.
 
+Allowed localStorage examples are theme, language, last selected non-sensitive preference, dismissed guidance, and appropriate bounded search history. Accounts, workspaces, content, drafts, notifications, permissions, and consent evidence never use it.
+
 Each repository query defines freshness, stale display, retention, and eviction. Show last-updated and offline/stale status where it affects decisions. Enforce quota-aware cleanup for evictable caches while never deleting unsynced writes.
 
 Browser storage is not assumed encrypted at rest and is visible to anyone using the same unlocked browser profile. Minimize personal data, store no secrets, and block production until logout/shared-device retention and purge policies are approved. Private API payloads never enter Cache Storage.
+
+Temporary product/campaign images use quota-aware IndexedDB/blob storage with approved compression, type/size limits, eviction rules, and visible errors. Verification documents, production chat attachments, and credentials cannot be stored offline until a secure policy/backend exists.
 
 ## Local write and mutation queue
 
@@ -41,6 +47,8 @@ For an offline-capable command, one Dexie transaction:
 2. Validates the command and allowed local lifecycle transition.
 3. Applies an optimistic local record with dirty sync metadata.
 4. Inserts an immutable-intent `SyncMutation` with actor/workspace context, base version, and dependencies.
+
+It also carries a stable idempotency key (normally the mutation UUID), updated time, retry and next-retry values, and sanitized failure code/details. Product-facing Pending/Processing/Blocked/Failed/Conflict/Completed labels map to the precise internal queue states in `DATA_MODELS.md`.
 
 The UI observes repository results and queue-derived status. It never writes queue rows itself. Updates to the same entity may be compacted only when semantics and audit needs allow it; creates must precede dependent updates/deletes.
 
@@ -125,6 +133,7 @@ Can work offline after relevant data/app assets were loaded:
 - Read retained business, product, update, order, conversation, and customer data within permission scope.
 - Resume approved onboarding drafts.
 - Save supported drafts and queue allowed intents such as follows, profile edits, order submissions, notes, catalog edits, status-change requests, and message delivery requests.
+- Create/edit product and campaign drafts, save products/updates, manage local preferences, read cached notifications, and store temporary product/campaign media within quota policy.
 - View queue and conflict status and retry eligible local failures.
 
 Cannot be completed offline:

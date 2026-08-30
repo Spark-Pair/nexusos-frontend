@@ -36,10 +36,12 @@ export function usePwaLifecycle() {
   }, [setNeedRefresh, updateServiceWorker])
 
   const dismissOfflineReady = useCallback(() => setOfflineReady(false), [setOfflineReady])
+  const dismissUpdate = useCallback(() => setNeedRefresh(false), [setNeedRefresh])
 
   return {
     canInstall: Boolean(installPrompt),
     dismissOfflineReady,
+    dismissUpdate,
     install,
     needRefresh,
     offlineReady,

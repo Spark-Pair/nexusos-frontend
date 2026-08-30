@@ -4,7 +4,7 @@
 
 NexusOS is a SparkPair product: a mobile-first Business Connection Operating System initially designed for Karachi, Pakistan, with a path to broader Pakistani and international markets.
 
-The repository contains the completed Phase 1 production foundation. It intentionally contains only a placeholder shell—NexusOS business pages begin in later approved phases.
+The repository contains the Phase 1 production foundation and Phase 2 application-shell foundation. Product routes intentionally render practical placeholders until their approved feature phases.
 
 ## Intended stack
 
@@ -40,9 +40,9 @@ These are planning boundaries, not yet implemented functionality. Real OTP, exte
 
 ## Current status
 
-Phase 1 provides strict tooling, app-level providers, typed public environment configuration, global error handling, connectivity state, a versioned Dexie shell, a persistent mutation-queue boundary, PWA installation/update handling, reusable foundation states, and automated tests.
+Phase 1 provides strict tooling, typed configuration, global error handling, versioned IndexedDB, mutation-queue and PWA foundations. Phase 2 adds centralized routes, simulated development identities, role and permission guards, isolated Customer/Business/Admin shells, route search, scoped local notifications, and shell-level connectivity/sync/PWA status.
 
-The next approved step is Phase 2 in `docs/DEVELOPMENT_PLAN.md`: application shells and role switching.
+The next recommended step is Phase 3 in `docs/DEVELOPMENT_PLAN.md`: Customer onboarding.
 
 ## Requirements
 
@@ -60,6 +60,8 @@ npm run dev
 On macOS or Linux, replace the `copy` command with `cp .env.example .env.local`.
 
 All `VITE_*` values are embedded in the browser bundle and must never contain secrets. Defaults allow local development without an environment file.
+
+`VITE_ENABLE_DEMO_IDENTITY=true` explicitly enables the simulated identity switcher. It is intended only for development, review, or an isolated demo deployment and is disabled in a default production build.
 
 ## Commands
 
@@ -82,10 +84,11 @@ npx playwright install chromium
 
 ## Architecture foundation
 
-- `src/app`: application bootstrap, providers, error boundary, and placeholder shell
+- `src/app`: application bootstrap, providers, centralized routing, guards, and role shells
 - `src/domain`: framework-independent contracts and sync mutation types
 - `src/infrastructure`: typed environment, Dexie, repositories, service composition, logging, and future HTTP boundary
-- `src/shared`: UI primitives, hooks, state, and global styling
+- `src/features`: Phase-scoped public, authentication, search, and notification foundations
+- `src/shared`: accessible UI primitives, hooks, ephemeral state, and global styling
 - `e2e`: Playwright smoke coverage, including nested-route refresh
 
 Vercel uses `vercel.json` to rewrite client-side routes to `index.html`. The service worker precaches the application shell so warmed routes can reopen offline. IndexedDB remains the durable structured-data boundary; the TanStack Query cache is not used as a database.

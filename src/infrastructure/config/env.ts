@@ -6,6 +6,10 @@ const envSchema = z.object({
   VITE_ENABLE_DEV_TOOLS: z
     .enum(['true', 'false'])
     .default('false')
+    .transform((value) => value === 'true'),
+  VITE_ENABLE_DEMO_IDENTITY: z
+    .enum(['true', 'false'])
+    .default('false')
     .transform((value) => value === 'true')
 })
 
@@ -22,6 +26,7 @@ export const env = Object.freeze({
   appEnvironment: parsed.data.VITE_APP_ENV,
   apiBaseUrl: parsed.data.VITE_API_BASE_URL,
   enableDevTools: import.meta.env.DEV && parsed.data.VITE_ENABLE_DEV_TOOLS,
+  enableDemoIdentity: import.meta.env.MODE === 'test' || parsed.data.VITE_ENABLE_DEMO_IDENTITY,
   isDevelopment: import.meta.env.DEV
 })
 

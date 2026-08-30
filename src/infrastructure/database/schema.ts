@@ -1,4 +1,5 @@
 import type { JsonValue } from '@domain/common/json'
+import type { AppNotification } from '@domain/notifications/notification'
 import type { SyncMutation } from '@domain/sync/mutation'
 
 export interface AppMetadataRecord {
@@ -10,4 +11,5 @@ export interface AppMetadataRecord {
 export interface DatabaseTables {
   appMetadata: AppMetadataRecord
   syncMutations: SyncMutation
+  notifications: AppNotification
 }

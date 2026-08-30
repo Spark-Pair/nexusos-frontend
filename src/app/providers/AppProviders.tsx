@@ -1,3 +1,4 @@
+import { AuthProvider } from '@app/auth/AuthProvider'
 import type { AppServices } from '@app/providers/AppServicesContext'
 import { AppServicesProvider } from '@app/providers/AppServicesProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -22,7 +23,9 @@ export function AppProviders({ children, services }: AppProvidersProps) {
   return (
     <AppServicesProvider services={services}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>{children}</BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>{children}</BrowserRouter>
+        </AuthProvider>
       </QueryClientProvider>
     </AppServicesProvider>
   )

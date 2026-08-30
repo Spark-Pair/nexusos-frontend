@@ -10,7 +10,8 @@ export default defineConfig({
       '@app': path.resolve(import.meta.dirname, 'src/app'),
       '@domain': path.resolve(import.meta.dirname, 'src/domain'),
       '@infrastructure': path.resolve(import.meta.dirname, 'src/infrastructure'),
-      '@shared': path.resolve(import.meta.dirname, 'src/shared')
+      '@shared': path.resolve(import.meta.dirname, 'src/shared'),
+      'virtual:pwa-register/react': path.resolve(import.meta.dirname, 'src/test/pwaRegisterMock.ts')
     }
   },
   test: {

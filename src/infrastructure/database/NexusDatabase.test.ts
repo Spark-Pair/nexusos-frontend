@@ -59,4 +59,41 @@ describe('NexusDatabase migrations', () => {
     expect(upgraded?.status).toBe('pending')
     upgradedDatabase.close()
   })
+
+  it('preserves version 2 pending mutations when adding the notification store', async () => {
+    const name = `nexusos-v2-migration-${crypto.randomUUID()}`
+    databaseNames.push(name)
+    const legacyDatabase = new Dexie(name)
+    legacyDatabase.version(2).stores({
+      appMetadata: '&key, updatedAt',
+      syncMutations:
+        '&id, &idempotencyKey, [accountId+workspaceId+status], [accountId+status], entityId, status, nextAttemptAt, createdAt'
+    })
+    const id = crypto.randomUUID()
+    await legacyDatabase.table('syncMutations').add({
+      id,
+      idempotencyKey: id,
+      accountId: 'account-v2',
+      workspaceId: 'workspace-v2',
+      entityType: 'foundation-check',
+      entityId: 'entity-v2',
+      operation: 'create',
+      payload: { ready: true },
+      dependencyIds: [],
+      attemptCount: 0,
+      status: 'pending',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+    legacyDatabase.close()
+
+    const upgradedDatabase = new NexusDatabase(name)
+    await expect(upgradedDatabase.syncMutations.get(id)).resolves.toMatchObject({
+      id,
+      idempotencyKey: id,
+      status: 'pending'
+    })
+    expect(upgradedDatabase.notifications).toBeDefined()
+    upgradedDatabase.close()
+  })
 })

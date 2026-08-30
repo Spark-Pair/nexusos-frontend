@@ -1,3 +1,4 @@
+import type { AppNotification } from '@domain/notifications/notification'
 import type { SyncMutation } from '@domain/sync/mutation'
 import type { AppMetadataRecord } from '@infrastructure/database/schema'
 import Dexie, { type EntityTable } from 'dexie'
@@ -13,6 +14,7 @@ const stores = {
 export class NexusDatabase extends Dexie {
   public appMetadata!: EntityTable<AppMetadataRecord, 'key'>
   public syncMutations!: EntityTable<SyncMutation, 'id'>
+  public notifications!: EntityTable<AppNotification, 'id'>
 
   public constructor(name = 'nexusos') {
     super(name)
@@ -33,6 +35,11 @@ export class NexusDatabase extends Dexie {
             mutation.idempotencyKey ??= mutation.id
           })
       })
+
+    this.version(3).stores({
+      ...stores,
+      notifications: '&id, [accountId+workspaceId], accountId, createdAt, read'
+    })
   }
 }
 

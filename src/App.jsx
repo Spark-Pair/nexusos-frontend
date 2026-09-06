@@ -1,121 +1,73 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
+const conversations = [
+  ['AK', 'Ali Khan', 'Can you share the updated price?', '2m'],
+  ['SA', 'Sara Ahmed', 'Thank you!', '18m'],
+  ['HR', 'Hamza Raza', 'I received the broadcast.', '1h'],
+  ['AN', 'Ayesha Noor', 'Perfect, I will check it.', '3h'],
+  ['UM', 'Usman Malik', 'Image', 'Yesterday'],
+]
+
+function NavIcon({ children, active, label }) {
+  return <button className={`nav-icon ${active ? 'active' : ''}`} aria-label={label}>{children}</button>
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [selected, setSelected] = useState(0)
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand-mark" aria-label="NexusOS">N</div>
+        <nav className="nav-stack" aria-label="Primary navigation">
+          <NavIcon active label="Chats">●</NavIcon>
+          <NavIcon label="Contacts">＋</NavIcon>
+          <NavIcon label="Broadcast lists">◫</NavIcon>
+        </nav>
+        <div className="nav-bottom">
+          <NavIcon label="Settings">⚙</NavIcon>
+          <button className="profile" aria-label="Profile">SP</button>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </aside>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+      <section className="conversation-panel">
+        <header className="conversation-heading">
+          <h1>Chats</h1>
+          <p>12 conversations</p>
+        </header>
+        <label className="search-box">
+          <span>⌕</span>
+          <input aria-label="Search conversations" placeholder="Search conversations" />
+        </label>
+        <div className="conversation-list">
+          {conversations.map(([initials, name, message, time], index) => (
+            <button key={name} className={`conversation ${selected === index ? 'selected' : ''}`} onClick={() => setSelected(index)}>
+              <span className="avatar">{initials}</span>
+              <span className="conversation-copy"><strong>{name}</strong><small>{message}</small></span>
+              <time>{time}</time>
+            </button>
+          ))}
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <section className="chat-panel">
+        <header className="chat-header">
+          <span className="avatar">AK</span>
+          <div><strong>Ali Khan</strong><small>+92 300 1234567 • Active now</small></div>
+        </header>
+        <div className="messages">
+          <span className="day-label">Today</span>
+          <div className="message received">Hi Ali! How can we help you today?</div>
+          <div className="message sent">Can you share the updated price list?</div>
+        </div>
+        <form className="composer" onSubmit={(event) => event.preventDefault()}>
+          <button type="button" aria-label="Attach">＋</button>
+          <input aria-label="Message" placeholder="Type a message…" />
+          <button className="send" aria-label="Send">➤</button>
+        </form>
+      </section>
+    </main>
   )
 }
 

@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { profileApi, type Profile } from './profileApi'
 import { authRoutes } from '@/features/authentication/authRoutes'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 
 export default function ProfilePage() {
   const { session, signOut } = useAuthSession()
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const notifications = usePushNotifications(token)
   const closeLogout = useCallback(() => {
     if (!signingOut) setLeaving(false)
   }, [signingOut])
@@ -220,6 +222,39 @@ export default function ProfilePage() {
                 checked={profile.settings.allowBroadcasts}
                 onChange={(e) => setting('allowBroadcasts', e.target.checked)}
               />
+            </section>
+            <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+              <div>
+                <h2 className="font-bold">Device notifications</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Get browser notifications for new messages and broadcasts on this device.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  {notifications.supported
+                    ? notifications.enabled
+                      ? 'Enabled on this browser'
+                      : notifications.permission === 'denied'
+                        ? 'Blocked by browser settings'
+                        : 'Not enabled yet'
+                    : 'Not supported on this browser'}
+                </p>
+                <Button
+                  type="button"
+                  disabled={
+                    !notifications.supported ||
+                    notifications.enabled ||
+                    notifications.permission === 'denied'
+                  }
+                  onClick={() => void notifications.enable()}
+                >
+                  {notifications.enabled ? 'Notifications enabled' : 'Enable notifications'}
+                </Button>
+              </div>
+              {notifications.error ? (
+                <p className="text-sm font-semibold text-rose-600">{notifications.error}</p>
+              ) : null}
             </section>
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
               <div>

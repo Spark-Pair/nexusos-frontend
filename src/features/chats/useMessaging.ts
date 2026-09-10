@@ -127,15 +127,20 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       autoConnect: serverConfirmed
     })
     socketRef.current = socket
-    socket.on('conversation:updated', () => {
+    socket.on('connect', () => {
       void synchronize()
+    })
+    socket.io.on('reconnect', () => {
+      void synchronize()
+    })
+    socket.on('conversation:updated', (payload: { conversationId?: string }) => {
+      void refresh()
+      if (payload.conversationId && selectedId.current === payload.conversationId)
+        void open(payload.conversationId).catch(() => undefined)
     })
     socket.on('conversation:typing', (payload: { conversationId: string; active: boolean }) => {
       if (selectedId.current === payload.conversationId) setCounterpartTyping(payload.active)
     })
-    const timer = window.setInterval(() => {
-      void synchronize()
-    }, 30000)
     const update = () => {
       void synchronize()
     }
@@ -143,12 +148,11 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     window.addEventListener('offline', update)
     return () => {
       alive.current = false
-      window.clearInterval(timer)
       socket.disconnect()
       window.removeEventListener('online', update)
       window.removeEventListener('offline', update)
     }
-  }, [serverConfirmed, synchronize, token])
+  }, [open, refresh, serverConfirmed, synchronize, token])
   const search = async (query: string) => {
     const version = ++searchId.current
     const result = await messagingApi.search(token, query)

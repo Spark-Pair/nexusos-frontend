@@ -22,11 +22,9 @@
     "paths": {
       "@/*": ["src/*"],
       "@app/*": ["src/app/*"],
-      "@domain/*": ["src/domain/*"],
-      "@infrastructure/*": ["src/infrastructure/*"],
       "@shared/*": ["src/shared/*"]
     },
-    "types": ["vite/client", "vite-plugin-pwa/react"]
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }

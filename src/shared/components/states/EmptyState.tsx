@@ -1,13 +1,22 @@
+import { PackageOpen } from 'lucide-react'
+import { StatePanel } from './StatePanel'
+
 interface EmptyStateProps {
   title: string
   description: string
+  actionLabel?: string
+  onAction?: () => void
 }
 
-export function EmptyState({ title, description }: EmptyStateProps) {
+export function EmptyState({ actionLabel, description, onAction, title }: EmptyStateProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
-      <h2 className="font-semibold">{title}</h2>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
-    </section>
+    <StatePanel
+      title={title}
+      description={description}
+      icon={PackageOpen}
+      tone="brand"
+      actionLabel={actionLabel}
+      onAction={onAction}
+    />
   )
 }

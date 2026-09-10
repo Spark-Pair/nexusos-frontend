@@ -1,6 +1,8 @@
+import { ConflictState } from '@shared/components/states/ConflictState'
 import { EmptyState } from '@shared/components/states/EmptyState'
 import { ErrorState } from '@shared/components/states/ErrorState'
 import { OfflineState } from '@shared/components/states/OfflineState'
+import { PermissionDeniedState } from '@shared/components/states/PermissionDeniedState'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -16,11 +18,15 @@ describe('foundation states', () => {
           onAction={vi.fn()}
         />
         <OfflineState />
+        <ConflictState />
+        <PermissionDeniedState />
       </>
     )
 
     expect(screen.getByRole('heading', { name: 'Nothing here' })).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not load')
-    expect(screen.getByRole('status')).toHaveTextContent('You are offline')
+    expect(screen.getByText('Could not load').closest('[role="alert"]')).toBeInTheDocument()
+    expect(screen.getByText('You are offline').closest('[role="status"]')).toBeInTheDocument()
+    expect(screen.getByText('Changes need review')).toBeInTheDocument()
+    expect(screen.getByText('Permission required')).toBeInTheDocument()
   })
 })

@@ -7,6 +7,7 @@ interface DialogProps extends PropsWithChildren {
   description?: string
   initialFocusSelector?: string
   onClose: () => void
+  placement?: 'center' | 'right'
 }
 export function Dialog({
   children,
@@ -14,6 +15,7 @@ export function Dialog({
   initialFocusSelector,
   onClose,
   open,
+  placement = 'center',
   title
 }: DialogProps) {
   const titleId = useId()
@@ -65,7 +67,9 @@ export function Dialog({
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4"
+      className={`fixed inset-0 z-50 grid bg-slate-950/40  ${
+        placement === 'right' ? 'justify-items-end' : 'place-items-center p-4'
+      }`}
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
@@ -73,7 +77,11 @@ export function Dialog({
     >
       <div
         ref={panel}
-        className="max-h-[85dvh] w-full max-w-xl overflow-auto rounded-2xl bg-white p-5 shadow-2xl"
+        className={
+          placement === 'right'
+            ? 'h-dvh w-full max-w-md overflow-auto border-l border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950'
+            : 'max-h-[85dvh] w-full max-w-xl overflow-auto rounded-[var(--radius-surface)] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950'
+        }
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -85,7 +93,7 @@ export function Dialog({
               {title}
             </h2>
             {description && (
-              <p id={descriptionId} className="mt-1 text-sm text-slate-600">
+              <p id={descriptionId} className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {description}
               </p>
             )}

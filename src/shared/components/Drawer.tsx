@@ -6,5 +6,9 @@ interface DrawerProps extends PropsWithChildren {
   onClose: () => void
 }
 export function Drawer(props: DrawerProps) {
-  return <Dialog {...props}>{props.children}</Dialog>
+  return (
+    <Dialog {...props} placement="right">
+      {props.children}
+    </Dialog>
+  )
 }

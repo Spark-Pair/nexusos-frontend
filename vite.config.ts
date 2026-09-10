@@ -9,40 +9,40 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'offline-sw.js',
       injectRegister: false,
-      includeAssets: ['icons/nexusos.svg'],
+      injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'] },
       manifest: {
         name: 'NexusOS',
         short_name: 'NexusOS',
-        description: 'Everything around your business, connected.',
-        theme_color: '#0f172a',
-        background_color: '#f8fafc',
+        description: 'Your business conversations, together.',
+        start_url: '/app/chats',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        background_color: '#f1f3f2',
+        theme_color: '#287663',
         icons: [
-          {
-            src: '/icons/nexusos.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
+          { src: '/icons/nexusos-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/nexusos-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/nexusos.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
         ]
-      },
-      workbox: {
-        navigateFallback: '/index.html',
-        cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,svg,woff2}']
       }
     })
   ],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    proxy: {
+      '/api': 'http://127.0.0.1:4000',
+      '/socket.io': { target: 'http://127.0.0.1:4000', ws: true }
+    }
+  },
+  preview: { host: '0.0.0.0', port: 4173 },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),
       '@app': path.resolve(import.meta.dirname, 'src/app'),
-      '@domain': path.resolve(import.meta.dirname, 'src/domain'),
-      '@infrastructure': path.resolve(import.meta.dirname, 'src/infrastructure'),
       '@shared': path.resolve(import.meta.dirname, 'src/shared')
     }
   }

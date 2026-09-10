@@ -1,32 +1,77 @@
-# NexusOS
+# NexusOS Design System
 
 **Everything around your business, connected.**
 
-NexusOS is a SparkPair product: a mobile-first Business Connection Operating System initially designed for Karachi, Pakistan, with a path to broader Pakistani and international markets.
+This frontend includes the reusable NexusOS Design System, backend-connected authentication,
+business discovery and following, connection invitations, and accepted two-way conversations.
+Trusted administrators configured by the API can manage accounts at `/admin/users`.
 
-The repository contains the Phase 1 production foundation and Phase 2 application-shell foundation. Product routes intentionally render practical placeholders until their approved feature phases.
+The current `public/icons/nexusos.svg` asset is a generic NexusOS placeholder and must be replaced
+after the final brand identity is approved.
 
-## Intended stack
+## Included stack
 
-- React, Vite, and strict TypeScript
-- Tailwind CSS and React Router
-- Zustand and TanStack Query
-- React Hook Form and Zod
-- Dexie-backed IndexedDB storage
-- `vite-plugin-pwa`
-- Vitest, React Testing Library, and Playwright
-- Vercel frontend deployment
-- Future Laravel REST API
+- React and Vite
+- Strict TypeScript
+- Tailwind CSS
+- Zod for centralized form validation
+- Vitest and React Testing Library
+- Playwright
+- ESLint and Prettier
 
-## Product surfaces
+## Setup
 
-NexusOS will keep three experiences separated:
+Requirements: Node.js 22 or newer and npm 11 or newer.
 
-- Customer: discover and follow businesses, view updates and products, submit order requests, and manage conversations.
-- Business: establish a presence, manage customers and a shared inbox, publish products and updates, handle orders, run segments and campaigns, and access operational settings.
-- Platform Admin: operate and govern the platform without sharing customer or business navigation and permissions.
+```bash
+npm install
+npm run dev
+```
 
-These are planning boundaries, not yet implemented functionality. Real OTP, external messaging, payments, campaign delivery, ERP connections, and credentials are explicitly out of scope until backend integrations are approved.
+The development server listens on the local network. On the current machine it is available from
+another device at `http://192.168.100.7:5173`; Windows Firewall must allow Node.js/private-network
+traffic. `/api` is proxied to the local Express server on port 4000.
+
+Open `http://localhost:5173/` for sign in. The reusable component catalogue is available at
+`http://localhost:5173/design-system`, and the authenticated Chats application is at
+`http://localhost:5173/app/chats`.
+
+Chats are loaded from the Express API and update live over authenticated Socket.IO connections,
+with periodic refresh as a connectivity fallback. Businesses invite customers with an initial message;
+customers can accept or reject before two-way messaging is enabled. Customer-started conversations
+require following the business first.
+
+## Commands
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+npm run typecheck
+npm run test
+npm run test:run
+npm run test:e2e
+```
+
+Install Playwright Chromium once on a new machine:
+
+```bash
+npx playwright install chromium
+```
+
+## Source structure
+
+- `src/features/design-system`: the reusable component review page at `/design-system`
+- `src/features/authentication`: backend-connected sign-in, account-type, phone, and OTP screens
+- `src/features/chats`: business discovery, invitations, and conversations at `/app/chats`
+- `src/shared/components`: reusable UI primitives and foundation states
+- `src/shared/styles`: global tokens and interaction styling
+- `src/shared/validation`: centralized Zod rules and casing normalization
+- `docs`: retained NexusOS product and architecture planning documents
+
+The documents describe future product direction only. Their planned product features are not
+implemented in the current source tree.
 
 ## Documentation
 
@@ -37,62 +82,10 @@ These are planning boundaries, not yet implemented functionality. Real OTP, exte
 - [Offline synchronization](docs/OFFLINE_SYNC.md)
 - [Route map](docs/ROUTE_MAP.md)
 - [Feature matrix](docs/FEATURE_MATRIX.md)
+- [Design system](docs/DESIGN_SYSTEM.md)
 
-## Current status
+## Inbox and offline PWA
 
-Phase 1 provides strict tooling, typed configuration, global error handling, versioned IndexedDB, mutation-queue and PWA foundations. Phase 2 adds centralized routes, simulated development identities, role and permission guards, isolated Customer/Business/Admin shells, route search, scoped local notifications, and shell-level connectivity/sync/PWA status.
-
-The next recommended step is Phase 3 in `docs/DEVELOPMENT_PLAN.md`: Customer onboarding.
-
-## Requirements
-
-- Node.js 22 or newer
-- npm 11 or newer (npm is the repository package manager)
-
-## Setup
-
-```bash
-npm install
-copy .env.example .env.local
-npm run dev
-```
-
-On macOS or Linux, replace the `copy` command with `cp .env.example .env.local`.
-
-All `VITE_*` values are embedded in the browser bundle and must never contain secrets. Defaults allow local development without an environment file.
-
-`VITE_ENABLE_DEMO_IDENTITY=true` explicitly enables the simulated identity switcher. It is intended only for development, review, or an isolated demo deployment and is disabled in a default production build.
-
-## Commands
-
-```bash
-npm run dev        # Start the Vite development server
-npm run build      # Type-check and create the production build in dist/
-npm run preview    # Serve the production build locally
-npm run lint       # Run ESLint and verify Prettier formatting
-npm run typecheck  # Run strict TypeScript project checks
-npm run test       # Run Vitest in watch mode
-npm run test:run   # Run unit/component tests once
-npm run test:e2e   # Build first, then run the Playwright smoke suite against preview
-```
-
-Install Playwright's Chromium browser once on a new development machine:
-
-```bash
-npx playwright install chromium
-```
-
-## Architecture foundation
-
-- `src/app`: application bootstrap, providers, centralized routing, guards, and role shells
-- `src/domain`: framework-independent contracts and sync mutation types
-- `src/infrastructure`: typed environment, Dexie, repositories, service composition, logging, and future HTTP boundary
-- `src/features`: Phase-scoped public, authentication, search, and notification foundations
-- `src/shared`: accessible UI primitives, hooks, ephemeral state, and global styling
-- `e2e`: Playwright smoke coverage, including nested-route refresh
-
-Vercel uses `vercel.json` to rewrite client-side routes to `index.html`. The service worker precaches the application shell so warmed routes can reopen offline. IndexedDB remains the durable structured-data boundary; the TanStack Query cache is not used as a database.
-
-## Product documentation status
-
-The complete product specification is recorded in `docs/PRODUCT_SPEC.md`, with canonical routes and feature traceability in `docs/ROUTE_MAP.md` and `docs/FEATURE_MATRIX.md`. Genuinely unresolved provider, policy, legal, pricing, permission, and protocol decisions remain listed without invented answers.
+Broadcasts now appear inside customer conversations; the old Updates URL redirects to Chats.
+See [Unified inbox and PWA](docs/INBOX_PWA.md) for cache limits, install instructions, reconnect
+behavior and verification. Run the backend migration before using the updated inbox.

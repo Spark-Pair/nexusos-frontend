@@ -14,6 +14,36 @@ import { broadcastApi } from '@/features/broadcasts/broadcastApi'
 
 const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.replace(/\/$/u, '')
 
+interface ConversationUpdatedPayload {
+  conversationId?: string
+  title?: string
+  body?: string
+  url?: string
+}
+
+function showRealtimeNotification(payload: ConversationUpdatedPayload) {
+  if (
+    typeof Notification === 'undefined' ||
+    Notification.permission !== 'granted' ||
+    document.visibilityState === 'visible' ||
+    !payload.title
+  )
+    return
+  const options: NotificationOptions = {
+    icon: '/icons/nexusos.svg',
+    badge: '/icons/nexusos.svg'
+  }
+  if (payload.body) options.body = payload.body
+  const tag = payload.url ?? payload.conversationId
+  if (tag) options.tag = tag
+  const notification = new Notification(payload.title, options)
+  notification.onclick = () => {
+    window.focus()
+    if (payload.url) window.location.href = payload.url
+    notification.close()
+  }
+}
+
 export function useMessaging(token: string, actorId: string, serverConfirmed: boolean) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [selected, setSelectedState] = useState<ConversationDetail>()
@@ -133,7 +163,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     socket.io.on('reconnect', () => {
       void synchronize()
     })
-    socket.on('conversation:updated', (payload: { conversationId?: string }) => {
+    socket.on('conversation:updated', (payload: ConversationUpdatedPayload) => {
+      showRealtimeNotification(payload)
       void refresh()
       if (payload.conversationId && selectedId.current === payload.conversationId)
         void open(payload.conversationId).catch(() => undefined)

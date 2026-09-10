@@ -39,7 +39,7 @@ function GoogleAction({
         }}
         onError={() => setError('Google sign-in was cancelled or failed.')}
         useOneTap={false}
-        width="100%"
+        width="240"
       />
       {loading ? <p className="mt-2 text-center text-xs text-slate-500">Signing in...</p> : null}
     </div>

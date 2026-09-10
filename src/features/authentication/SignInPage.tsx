@@ -1,4 +1,4 @@
-import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google'
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google'
 import { Button } from '@shared/components/Button'
 import { Input } from '@shared/components/FormControls'
 import { Mail, Smartphone } from 'lucide-react'
@@ -20,23 +20,29 @@ function GoogleAction({
   setLoading: (loading: boolean) => void
   loading: boolean
 }) {
-  const google = useGoogleLogin({
-    onSuccess: (response) => {
-      setLoading(true)
-      void authApi
-        .google(response.access_token, 'customer')
-        .then(finish)
-        .catch((cause: unknown) =>
-          setError(cause instanceof Error ? cause.message : 'Google sign-in failed.')
-        )
-        .finally(() => setLoading(false))
-    },
-    onError: () => setError('Google sign-in was cancelled or failed.')
-  })
   return (
-    <Button onClick={() => google()} loading={loading}>
-      Google
-    </Button>
+    <div className="overflow-hidden rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white/80 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+      <GoogleLogin
+        onSuccess={(response) => {
+          if (!response.credential) {
+            setError('Google did not return an identity token.')
+            return
+          }
+          setLoading(true)
+          void authApi
+            .google(response.credential, 'customer')
+            .then(finish)
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : 'Google sign-in failed.')
+            )
+            .finally(() => setLoading(false))
+        }}
+        onError={() => setError('Google sign-in was cancelled or failed.')}
+        useOneTap={false}
+        width="100%"
+      />
+      {loading ? <p className="mt-2 text-center text-xs text-slate-500">Signing in...</p> : null}
+    </div>
   )
 }
 

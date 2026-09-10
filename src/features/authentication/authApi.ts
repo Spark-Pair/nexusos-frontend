@@ -66,7 +66,7 @@ export const authApi = {
     request('/auth/login', { email, password, device_name: deviceName }),
   google: (accessToken: string, accountKind: 'customer' | 'business') =>
     request('/auth/google/exchange', {
-      access_token: accessToken,
+      id_token: accessToken,
       account_kind: accountKind,
       device_name: deviceName
     }),

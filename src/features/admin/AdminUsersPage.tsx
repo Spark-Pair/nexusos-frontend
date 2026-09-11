@@ -2,41 +2,41 @@ import { AdminShell } from '@shared/components/AdminShell'
 import { Button } from '@shared/components/Button'
 import { DataTable, type DataColumn } from '@shared/components/DataTable'
 import { Dialog } from '@shared/components/Dialog'
-import { Input } from '@shared/components/FormControls'
 import { SearchField } from '@shared/components/SearchField'
 import { useToast } from '@shared/components/toastContext'
-import { Building2, Flag, Plus, Trash2, Users } from 'lucide-react'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { CheckCircle2, Flag, Trash2, Users, XCircle } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { adminApi, type AdminUser } from './adminApi'
+import { adminApi, type AdminUser, type BusinessRequest } from './adminApi'
 import { useAuthSession } from '@/features/authentication/authSession'
 
 const date = (value: Date | null) =>
   value
     ? new Intl.DateTimeFormat('en-PK', { dateStyle: 'medium', timeStyle: 'short' }).format(value)
     : 'Never'
+
 export default function AdminUsersPage() {
   const navigate = useNavigate()
   const { session, signOut } = useAuthSession()
   const toast = useToast()
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [requests, setRequests] = useState<BusinessRequest[]>([])
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string>()
   const [deleteTarget, setDeleteTarget] = useState<AdminUser>()
   const [deleting, setDeleting] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createError, setCreateError] = useState('')
-  const [businessName, setBusinessName] = useState('')
-  const [businessEmail, setBusinessEmail] = useState('')
-  const [businessPassword, setBusinessPassword] = useState('')
   const load = useCallback(
     async (search: string) => {
       try {
-        setUsers(await adminApi.users(session!.token, search))
+        const [nextUsers, nextRequests] = await Promise.all([
+          adminApi.users(session!.token, search),
+          adminApi.businessRequests(session!.token)
+        ])
+        setUsers(nextUsers)
+        setRequests(nextRequests)
         setError(undefined)
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Unable to load users.')
+        setError(cause instanceof Error ? cause.message : 'Unable to load administration data.')
       }
     },
     [session]
@@ -44,33 +44,25 @@ export default function AdminUsersPage() {
   useEffect(() => {
     void load('')
   }, [load])
-  const createBusiness = async (event: FormEvent) => {
-    event.preventDefault()
-    if (creating) return
-    setCreating(true)
-    setCreateError('')
+  const resolveRequest = async (request: BusinessRequest, decision: 'approved' | 'rejected') => {
     try {
-      const created = await adminApi.createBusiness(session!.token, {
-        name: businessName,
-        email: businessEmail,
-        password: businessPassword
-      })
-      setUsers((current) => [created, ...current.filter((item) => item.id !== created.id)])
-      setBusinessName('')
-      setBusinessEmail('')
-      setBusinessPassword('')
-      setCreateOpen(false)
+      const updated = await adminApi.resolveBusinessRequest(session!.token, request.id, decision)
+      setRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      if (decision === 'approved') await load(query)
       toast({
-        title: 'Business account created',
-        description: 'Share the email and temporary password with the business.',
+        title: decision === 'approved' ? 'Business approved' : 'Request rejected',
+        description:
+          decision === 'approved'
+            ? `${request.businessName} can now use business tools.`
+            : `${request.businessName} was not upgraded.`,
         tone: 'success'
       })
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Unable to create business account.'
-      setCreateError(message)
-      toast({ title: 'Business not created', description: message, tone: 'danger' })
-    } finally {
-      setCreating(false)
+      toast({
+        title: 'Request not updated',
+        description: cause instanceof Error ? cause.message : 'Please try again.',
+        tone: 'danger'
+      })
     }
   }
   const columns: DataColumn<AdminUser>[] = [
@@ -160,6 +152,7 @@ export default function AdminUsersPage() {
       )
     }
   ]
+  const pending = requests.filter((request) => request.status === 'pending')
   return (
     <AdminShell onSignOut={() => void signOut()}>
       <div className="grid gap-3">
@@ -168,23 +161,73 @@ export default function AdminUsersPage() {
             <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
               NexusOS administration
             </p>
-            <h1 className="text-2xl font-bold">Users</h1>
+            <h1 className="text-2xl font-bold">Users & business requests</h1>
           </div>
-          <Button variant="primary" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
-            Create business
-          </Button>
           <Button variant="quiet" onClick={() => void navigate('/admin/moderation')}>
             <Flag className="size-4" />
             Reports
           </Button>
         </header>
         <section className="app-panel p-5">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Business requests</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Review customers who asked to become businesses. Call the listed contact before
+              approving.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {pending.length ? (
+              pending.map((request) => (
+                <article
+                  key={request.id}
+                  className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold">{request.businessName}</h3>
+                      <p className="text-sm text-slate-500">
+                        Requested by {request.userName}{' '}
+                        {request.userEmail ? `(${request.userEmail})` : ''}
+                      </p>
+                      <p className="mt-2 text-sm">
+                        Call {request.contactPersonName} at {request.phone}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Requested {date(request.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => void resolveRequest(request, 'approved')}
+                      >
+                        <CheckCircle2 className="size-4" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => void resolveRequest(request, 'rejected')}
+                      >
+                        <XCircle className="size-4" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <p className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-800">
+                No pending business requests.
+              </p>
+            )}
+          </div>
+        </section>
+        <section className="app-panel p-5">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-bold">
-                <Users className="size-5" />
-                All accounts
+                <Users className="size-5" /> All accounts
               </h2>
               <p className="mt-1 text-sm text-slate-500">{users.length} users visible</p>
             </div>
@@ -234,36 +277,6 @@ export default function AdminUsersPage() {
                       {user.deletedAt ? 'Deleted' : user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={user.isActive ? 'quiet' : 'primary'}
-                      disabled={Boolean(user.deletedAt)}
-                      onClick={() =>
-                        void adminApi
-                          .setActive(session!.token, user.id, !user.isActive)
-                          .then((updated) =>
-                            setUsers((current) =>
-                              current.map((item) => (item.id === updated.id ? updated : item))
-                            )
-                          )
-                          .catch((cause: unknown) =>
-                            setError(cause instanceof Error ? cause.message : 'Update failed.')
-                          )
-                      }
-                    >
-                      {user.isActive ? 'Deactivate' : 'Activate'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={Boolean(user.deletedAt)}
-                      aria-label={`Delete ${user.name}`}
-                      onClick={() => setDeleteTarget(user)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
                 </article>
               ))
             ) : (
@@ -274,54 +287,6 @@ export default function AdminUsersPage() {
           </div>
         </section>
       </div>
-      <Dialog
-        open={createOpen}
-        title="Create business account"
-        description="Create credentials for a business workspace. Share them after the account is created."
-        initialFocusSelector="[name='business-name']"
-        onClose={() => {
-          if (!creating) setCreateOpen(false)
-        }}
-      >
-        <form className="grid gap-4" onSubmit={(event) => void createBusiness(event)}>
-          <Input
-            name="business-name"
-            label="Business name"
-            autoComplete="organization"
-            value={businessName}
-            onChange={(event) => setBusinessName(event.target.value)}
-          />
-          <Input
-            label="Business email"
-            type="email"
-            autoComplete="email"
-            value={businessEmail}
-            onChange={(event) => setBusinessEmail(event.target.value)}
-          />
-          <Input
-            label="Temporary password"
-            type="password"
-            autoComplete="new-password"
-            hint="Use at least 8 characters."
-            value={businessPassword}
-            onChange={(event) => setBusinessPassword(event.target.value)}
-          />
-          {createError ? (
-            <p role="alert" className="text-sm font-semibold text-rose-600">
-              {createError}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button disabled={creating} onClick={() => setCreateOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" loading={creating}>
-              <Building2 className="size-4" />
-              Create business
-            </Button>
-          </div>
-        </form>
-      </Dialog>
       <Dialog
         open={Boolean(deleteTarget)}
         title="Delete user account?"

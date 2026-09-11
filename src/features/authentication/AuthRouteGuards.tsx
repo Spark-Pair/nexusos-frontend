@@ -35,7 +35,8 @@ export function SignedOutOnlyRoute() {
 export function PhoneFlowRoute() {
   const { session, status } = useAuthSession()
   if (status === 'restoring') return <RestoringSession />
-  if (session && !session.requires_phone) return <Navigate to={authRoutes.chatPreview} replace />
+  if (!session) return <Navigate to={authRoutes.signIn} replace />
+  if (!session.requires_phone) return <Navigate to={authRoutes.chatPreview} replace />
   return <Outlet />
 }
 

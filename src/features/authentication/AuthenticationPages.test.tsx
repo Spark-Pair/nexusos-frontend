@@ -4,8 +4,8 @@ import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { AuthSessionProvider } from './authSession'
-import CreateAccountPage from './CreateAccountPage'
 import PhonePage from './PhonePage'
+import SignInPage from './SignInPage'
 import VerifyPage from './VerifyPage'
 
 function renderAt(path: string, element: ReactNode) {
@@ -23,10 +23,12 @@ function renderAt(path: string, element: ReactNode) {
 }
 
 describe('authentication screens', () => {
-  it('keeps self signup simple and customer-only', () => {
-    renderAt('/create-account', <CreateAccountPage />)
-    expect(screen.getByRole('button', { name: 'Create account' })).toBeVisible()
-    expect(screen.queryByRole('button', { name: /Business/ })).not.toBeInTheDocument()
+  it('keeps authentication Google-only for new users', () => {
+    renderAt('/sign-in', <SignInPage />)
+    expect(screen.getByRole('heading', { name: 'Sign in with Google' })).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: /Create account|Sign in with email|Phone/i })
+    ).not.toBeInTheDocument()
   })
 
   it('validates Pakistani phone numbers through the shared rule', () => {

@@ -14,6 +14,20 @@ const userSchema = z.object({
   createdAt: z.coerce.date(),
   deletedAt: z.coerce.date().nullable()
 })
+
+const businessRequestSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  userName: z.string(),
+  userEmail: z.string().nullable(),
+  businessName: z.string(),
+  contactPersonName: z.string(),
+  phone: z.string(),
+  status: z.enum(['pending', 'approved', 'rejected']),
+  createdAt: z.coerce.date(),
+  reviewedAt: z.coerce.date().nullable(),
+  reviewedBy: z.string().nullable()
+})
 const reportSchema = z.object({
   broadcastId: z.string().uuid(),
   customerId: z.string().uuid(),
@@ -25,6 +39,7 @@ const reportSchema = z.object({
   reportedAt: z.coerce.date()
 })
 export type AdminUser = z.infer<typeof userSchema>
+export type BusinessRequest = z.infer<typeof businessRequestSchema>
 const baseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/u, '')
 async function call(path: string, token: string, init?: RequestInit) {
   if (!baseUrl) throw new Error('The NexusOS API URL is not configured.')
@@ -61,11 +76,15 @@ export const adminApi = {
     z
       .object({ data: z.array(userSchema) })
       .parse(await call(`/admin/users?q=${encodeURIComponent(query)}`, token)).data,
-  createBusiness: async (token: string, data: { name: string; email: string; password: string }) =>
-    z.object({ data: userSchema }).parse(
-      await call('/admin/users', token, {
+  businessRequests: async (token: string) =>
+    z
+      .object({ data: z.array(businessRequestSchema) })
+      .parse(await call('/admin/business-requests', token)).data,
+  resolveBusinessRequest: async (token: string, id: string, decision: 'approved' | 'rejected') =>
+    z.object({ data: businessRequestSchema }).parse(
+      await call(`/admin/business-requests/${id}/resolve`, token, {
         method: 'POST',
-        body: JSON.stringify({ ...data, account_kind: 'business', device_name: 'admin panel' })
+        body: JSON.stringify({ decision })
       })
     ).data,
   setActive: async (token: string, id: string, active: boolean) =>

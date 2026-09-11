@@ -22,6 +22,10 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [businessName, setBusinessName] = useState('')
+  const [contactPersonName, setContactPersonName] = useState('')
+  const [businessPhone, setBusinessPhone] = useState('')
+  const [requestingBusiness, setRequestingBusiness] = useState(false)
   const notifications = usePushNotifications(token)
   const closeLogout = useCallback(() => {
     if (!signingOut) setLeaving(false)
@@ -102,6 +106,34 @@ export default function ProfilePage() {
   }
   const setting = <K extends keyof Profile['settings']>(key: K, value: Profile['settings'][K]) =>
     setProfile({ ...profile, settings: { ...profile.settings, [key]: value } })
+
+  const requestBusiness = async () => {
+    if (requestingBusiness) return
+    setRequestingBusiness(true)
+    try {
+      await profileApi.requestBusiness(token, {
+        business_name: businessName,
+        contact_person_name: contactPersonName,
+        phone: businessPhone
+      })
+      setBusinessName('')
+      setContactPersonName('')
+      setBusinessPhone('')
+      toast({
+        title: 'Business request sent',
+        description: 'An admin will call the contact person before upgrading this account.',
+        tone: 'success'
+      })
+    } catch (e) {
+      toast({
+        title: 'Request not sent',
+        description: e instanceof Error ? e.message : 'Please check the details and try again.',
+        tone: 'danger'
+      })
+    } finally {
+      setRequestingBusiness(false)
+    }
+  }
   return (
     <WorkspaceShell
       accountName={session!.data.name}
@@ -223,6 +255,50 @@ export default function ProfilePage() {
                 onChange={(e) => setting('allowBroadcasts', e.target.checked)}
               />
             </section>
+
+            {profile.account_kind === 'customer' ? (
+              <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+                <div>
+                  <h2 className="font-bold">Be a Business</h2>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    Business accounts can invite customers, organize broadcast lists, publish
+                    updates into customer chats and manage a business inbox. Send a request and an
+                    admin will call your contact person to verify details before upgrading this
+                    account.
+                  </p>
+                </div>
+                <div className="grid gap-3">
+                  <Input
+                    label="Business name"
+                    autoComplete="organization"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                  />
+                  <Input
+                    label="Person to call"
+                    autoComplete="name"
+                    value={contactPersonName}
+                    onChange={(e) => setContactPersonName(e.target.value)}
+                  />
+                  <Input
+                    label="Valid phone number"
+                    type="tel"
+                    autoComplete="tel"
+                    hint="Use a number admins can call directly."
+                    value={businessPhone}
+                    onChange={(e) => setBusinessPhone(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    loading={requestingBusiness}
+                    className="justify-center sm:w-fit"
+                    onClick={() => void requestBusiness()}
+                  >
+                    Send business request
+                  </Button>
+                </div>
+              </section>
+            ) : null}
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
               <div>
                 <h2 className="font-bold">Device notifications</h2>

@@ -56,14 +56,6 @@ async function request(path: string, body: unknown, token?: string): Promise<Aut
 
 const deviceName = `NexusOS Web (${navigator.platform || 'browser'})`
 export const authApi = {
-  register: (data: {
-    name: string
-    email: string
-    password: string
-    password_confirmation: string
-  }) => request('/auth/register', { ...data, account_kind: 'customer', device_name: deviceName }),
-  login: (email: string, password: string) =>
-    request('/auth/login', { email, password, device_name: deviceName }),
   google: (accessToken: string, accountKind: 'customer' | 'business') =>
     request('/auth/google/exchange', {
       id_token: accessToken,

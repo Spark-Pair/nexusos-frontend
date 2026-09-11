@@ -12,7 +12,6 @@ import {
 const ChatsPage = lazy(() => import('@/features/chats/ChatsPage'))
 const DesignSystemPage = lazy(() => import('@/features/design-system/DesignSystemPage'))
 const SignInPage = lazy(() => import('@/features/authentication/SignInPage'))
-const CreateAccountPage = lazy(() => import('@/features/authentication/CreateAccountPage'))
 const PhonePage = lazy(() => import('@/features/authentication/PhonePage'))
 const VerifyPage = lazy(() => import('@/features/authentication/VerifyPage'))
 const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage'))
@@ -36,7 +35,6 @@ export function App() {
         <Route path="/" element={<Navigate to="/app/chats" replace />} />
         <Route element={<SignedOutOnlyRoute />}>
           <Route path="/sign-in" element={<SignInPage />} />
-          <Route path="/create-account" element={<CreateAccountPage />} />
         </Route>
         <Route element={<PhoneFlowRoute />}>
           <Route path="/auth/phone" element={<PhonePage />} />
@@ -58,6 +56,7 @@ export function App() {
           <Route path="/admin/moderation" element={<AdminReportsPage />} />
         </Route>
         <Route path="/design-system" element={<DesignSystemPage />} />
+        <Route path="/create-account" element={<Navigate to="/sign-in" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

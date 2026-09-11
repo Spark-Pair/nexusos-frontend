@@ -47,11 +47,7 @@ export default function PhonePage() {
     <AuthenticationScreen
       eyebrow="Phone verification"
       title="Enter your mobile number"
-      description={
-        session
-          ? 'Add and verify a phone number to complete your account setup.'
-          : `Use phone sign-in now, or add it later when ${effectiveAccount} setup requires contact details.`
-      }
+      description="Add and verify a phone number to complete your Google account setup."
       footer={
         <Link className="text-sm font-semibold text-blue-600" to={authRoutes.signIn}>
           Back to sign in

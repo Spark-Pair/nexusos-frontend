@@ -19,24 +19,10 @@ export function SignedOutOnlyRoute() {
   if (session)
     return (
       <Navigate
-        to={
-          session.requires_phone
-            ? authRoutes.phone
-            : session.data.is_admin
-              ? authRoutes.adminUsers
-              : authRoutes.chatPreview
-        }
+        to={session.data.is_admin ? authRoutes.adminUsers : authRoutes.chatPreview}
         replace
       />
     )
-  return <Outlet />
-}
-
-export function PhoneFlowRoute() {
-  const { session, status } = useAuthSession()
-  if (status === 'restoring') return <RestoringSession />
-  if (!session) return <Navigate to={authRoutes.signIn} replace />
-  if (!session.requires_phone) return <Navigate to={authRoutes.chatPreview} replace />
   return <Outlet />
 }
 
@@ -44,7 +30,6 @@ export function ProtectedRoute() {
   const { session, status } = useAuthSession()
   if (status === 'restoring') return <RestoringSession />
   if (!session) return <Navigate to={authRoutes.signIn} replace />
-  if (session.requires_phone) return <Navigate to={authRoutes.phone} replace />
   return <Outlet />
 }
 
@@ -60,7 +45,6 @@ function AccountKindRoute({ kind }: { kind: 'customer' | 'business' }) {
   const { session, status } = useAuthSession()
   if (status === 'restoring') return <RestoringSession />
   if (!session) return <Navigate to={authRoutes.signIn} replace />
-  if (session.requires_phone) return <Navigate to={authRoutes.phone} replace />
   if (session.data.account_kind !== kind) return <Navigate to={authRoutes.chatPreview} replace />
   return <Outlet />
 }

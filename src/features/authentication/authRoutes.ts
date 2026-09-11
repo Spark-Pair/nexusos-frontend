@@ -1,7 +1,5 @@
 export const authRoutes = Object.freeze({
   signIn: '/sign-in',
-  phone: '/auth/phone',
-  verify: '/auth/verify',
   chatPreview: '/app/chats',
   adminUsers: '/admin/users'
 })

@@ -51,13 +51,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const finish = (session: AuthSession) => {
     setSession(session)
-    void navigate(
-      session.requires_phone
-        ? authRoutes.phone
-        : session.data.is_admin
-          ? authRoutes.adminUsers
-          : authRoutes.chatPreview
-    )
+    void navigate(session.data.is_admin ? authRoutes.adminUsers : authRoutes.chatPreview)
   }
   return (
     <AuthenticationScreen

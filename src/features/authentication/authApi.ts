@@ -62,41 +62,6 @@ export const authApi = {
       account_kind: accountKind,
       device_name: deviceName
     }),
-  phoneChallenge: async (phone: string) => {
-    if (!apiUrl) throw new Error('The NexusOS API URL is not configured.')
-    const response = await fetch(`${apiUrl}/auth/phone/challenge`, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    })
-    const json: unknown = await response.json()
-    if (!response.ok) throw new Error('Unable to send the verification code.')
-    return z
-      .object({
-        challenge_id: z.string().uuid(),
-        expires_in: z.number(),
-        development_code: z.string().nullable()
-      })
-      .parse(json)
-  },
-  phoneVerify: (challengeId: string, code: string, accountKind: 'customer' | 'business') =>
-    request('/auth/phone/verify', {
-      challenge_id: challengeId,
-      code,
-      account_kind: accountKind,
-      device_name: deviceName
-    }),
-  phoneComplete: (
-    challengeId: string,
-    code: string,
-    accountKind: 'customer' | 'business',
-    token: string
-  ) =>
-    request(
-      '/auth/phone/complete',
-      { challenge_id: challengeId, code, account_kind: accountKind, device_name: deviceName },
-      token
-    ),
   restore: async (token: string): Promise<AuthSession> => {
     if (!apiUrl) throw new Error('The NexusOS API URL is not configured.')
     const response = await fetch(`${apiUrl}/auth/me`, {

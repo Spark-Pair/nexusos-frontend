@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import {
-  PhoneFlowRoute,
   ProtectedRoute,
   SignedOutOnlyRoute,
   AdminRoute,
@@ -12,8 +11,6 @@ import {
 const ChatsPage = lazy(() => import('@/features/chats/ChatsPage'))
 const DesignSystemPage = lazy(() => import('@/features/design-system/DesignSystemPage'))
 const SignInPage = lazy(() => import('@/features/authentication/SignInPage'))
-const PhonePage = lazy(() => import('@/features/authentication/PhonePage'))
-const VerifyPage = lazy(() => import('@/features/authentication/VerifyPage'))
 const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage'))
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'))
 const BroadcastPage = lazy(() => import('@/features/broadcasts/BroadcastPage'))
@@ -35,10 +32,6 @@ export function App() {
         <Route path="/" element={<Navigate to="/app/chats" replace />} />
         <Route element={<SignedOutOnlyRoute />}>
           <Route path="/sign-in" element={<SignInPage />} />
-        </Route>
-        <Route element={<PhoneFlowRoute />}>
-          <Route path="/auth/phone" element={<PhonePage />} />
-          <Route path="/auth/verify" element={<VerifyPage />} />
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route path="/app/chats" element={<ChatsPage />} />

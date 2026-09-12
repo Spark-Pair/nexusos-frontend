@@ -11,13 +11,15 @@ export function syncOutbox(actorId: string, token: string) {
       if (!navigator.onLine || localStorage.getItem('nexusos-session-token') !== token) return
       if (item.status === 'failed') continue
       try {
-        await messagingApi.send(
-          token,
-          item.conversationId,
-          item.body,
-          item.id,
-          item.imageUrls ?? []
-        )
+        let imageUrls = item.imageUrls ?? []
+        if (!imageUrls.length && item.images?.length) {
+          imageUrls = await messagingApi.upload(
+            token,
+            item.images.map((image) => new File([image.blob], image.name, { type: image.type }))
+          )
+          await offlineStore.update(item.id, { imageUrls })
+        }
+        await messagingApi.send(token, item.conversationId, item.body, item.id, imageUrls)
         await offlineStore.remove(item.id)
       } catch (cause) {
         if (cause instanceof ApiError) {

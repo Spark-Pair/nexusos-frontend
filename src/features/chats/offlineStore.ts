@@ -12,12 +12,18 @@ interface Identity {
   value: Omit<AuthSession, 'token'>
   updatedAt: number
 }
+export interface QueuedImage {
+  name: string
+  type: string
+  blob: Blob
+}
 export interface QueuedMessage {
   id: string
   actorId: string
   conversationId: string
   body: string
   imageUrls?: string[]
+  images?: QueuedImage[]
   createdAt: Date
   status: 'queued' | 'failed'
   error?: string
@@ -73,6 +79,9 @@ export const offlineStore = {
   },
   async queued(actorId: string) {
     return db.outbox.where('actorId').equals(actorId).sortBy('createdAt')
+  },
+  async update(id: string, value: Partial<QueuedMessage>) {
+    await db.outbox.update(id, value)
   },
   async fail(id: string, error: string) {
     await db.outbox.update(id, { status: 'failed', error })

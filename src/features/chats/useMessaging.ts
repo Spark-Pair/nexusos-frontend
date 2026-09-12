@@ -310,15 +310,14 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     const id = selectedId.current
     if (!id || selected?.conversation.status !== 'accepted')
       throw new Error('Open an accepted conversation first.')
-    if (files.length && (!serverConfirmed || !navigator.onLine))
-      throw new Error('Connect to the internet to send images.')
-    const imageUrls = files.length ? await messagingApi.upload(token, files) : []
+    const localImageUrls = files.map((file) => URL.createObjectURL(file))
     const item: QueuedMessage = {
       id: crypto.randomUUID(),
       actorId,
       conversationId: id,
       body,
-      imageUrls,
+      imageUrls: [],
+      images: files.map((file) => ({ name: file.name, type: file.type, blob: file })),
       createdAt: new Date(),
       status: 'queued'
     }
@@ -334,7 +333,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       conversationId: id,
       senderId: actorId,
       body,
-      imageUrls,
+      imageUrls: localImageUrls,
       createdAt: item.createdAt,
       readAt: null,
       title: ''
@@ -342,9 +341,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     setSelectedState((current) => {
       if (current?.conversation.id !== id) return current
       const next = { ...current, messages: mergeMessage(current.messages, optimistic) }
-      void offlineStore
-        .save(actorId, id, { ...next, messages: next.messages.slice(-200) })
-        .catch(() => undefined)
+      if (!localImageUrls.length)
+        void offlineStore
+          .save(actorId, id, { ...next, messages: next.messages.slice(-200) })
+          .catch(() => undefined)
       return next
     })
     setConversations((items) =>

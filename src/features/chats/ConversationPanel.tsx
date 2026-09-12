@@ -25,6 +25,39 @@ import type { ConversationDetail } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 
+function QueuedImagePreview({
+  image,
+  index,
+  onOpen
+}: {
+  image: { blob: Blob; name: string }
+  index: number
+  onOpen: (url: string) => void
+}) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    const next = URL.createObjectURL(image.blob)
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [image.blob])
+  if (!url) return null
+  return (
+    <button
+      type="button"
+      className="mb-2 block overflow-hidden rounded-xl"
+      aria-label={'View queued image ' + (index + 1)}
+      onClick={() => onOpen(url)}
+    >
+      <img
+        src={url}
+        alt={image.name || 'Queued image ' + (index + 1)}
+        loading="lazy"
+        className="max-h-72 w-full object-cover"
+      />
+    </button>
+  )
+}
+
 export function ConversationPanel({
   detail,
   currentUserId,
@@ -335,6 +368,15 @@ export function ConversationPanel({
                     />
                   </button>
                 ))}
+                {!item.imageUrls?.length &&
+                  item.images?.map((image, imageIndex) => (
+                    <QueuedImagePreview
+                      key={`${item.id}-${imageIndex}`}
+                      image={image}
+                      index={imageIndex}
+                      onOpen={setImage}
+                    />
+                  ))}
                 {item.body ? (
                   <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
                 ) : null}

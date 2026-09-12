@@ -25,12 +25,49 @@ interface ConversationUpdatedPayload {
   readAt?: string
 }
 
+function asDate(value: Date | string) {
+  return value instanceof Date ? value : new Date(value)
+}
+
+function normalizeMessage(message: Message): Message {
+  return {
+    ...message,
+    createdAt: asDate(message.createdAt),
+    readAt: message.readAt ? asDate(message.readAt) : null
+  }
+}
+
+function normalizeSummary(summary: ConversationSummary): ConversationSummary {
+  return {
+    ...summary,
+    createdAt: asDate(summary.createdAt),
+    updatedAt: asDate(summary.updatedAt),
+    lastMessage: summary.lastMessage ? normalizeMessage(summary.lastMessage) : null
+  }
+}
+
+function normalizeDetail(detail: ConversationDetail): ConversationDetail {
+  return {
+    ...detail,
+    conversation: {
+      ...detail.conversation,
+      createdAt: asDate(detail.conversation.createdAt),
+      updatedAt: asDate(detail.conversation.updatedAt)
+    },
+    messages: detail.messages.map(normalizeMessage)
+  }
+}
+
+function sortConversations(items: ConversationSummary[]) {
+  return [...items].sort((a, b) => asDate(b.updatedAt).getTime() - asDate(a.updatedAt).getTime())
+}
 function mergeMessage(messages: Message[], message: Message) {
-  const exists = messages.some((item) => item.id === message.id)
+  const normalized = normalizeMessage(message)
+  const exists = messages.some((item) => item.id === normalized.id)
   const next = exists
-    ? messages.map((item) => (item.id === message.id ? { ...item, ...message } : item))
-    : [...messages, message]
-  return next.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    ? messages.map((item) => (item.id === normalized.id ? { ...item, ...normalized } : item))
+    : [...messages, normalized]
+  return next.sort((a, b) => asDate(a.createdAt).getTime() - asDate(b.createdAt).getTime())
 }
 
 function readOwnMessages(messages: Message[], actorId: string, readAt: string) {
@@ -89,7 +126,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       .read<ConversationSummary[]>(actorId, 'conversations')
       .catch(() => undefined)
     if (alive.current && cached?.length) {
-      setConversations(cached)
+      setConversations(sortConversations(cached.map(normalizeSummary)))
       setLoading(false)
     }
     try {
@@ -97,7 +134,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         throw new Error('Offline: showing saved conversations.')
       const items = await messagingApi.list(token)
       if (!alive.current) return
-      setConversations(items)
+      setConversations(sortConversations(items.map(normalizeSummary)))
       setError(undefined)
       await offlineStore.save(actorId, 'conversations', items.slice(0, 500)).catch(() => undefined)
     } catch (cause) {
@@ -124,7 +161,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
           .read<ConversationDetail>(actorId, id)
           .catch(() => undefined)
         if (alive.current && selectedId.current === id && cached) {
-          setSelectedState(cached)
+          setSelectedState(normalizeDetail(cached))
           setOpening(false)
         }
         let detail = cached
@@ -143,7 +180,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
             'This conversation is not saved on this device. Connect to the internet to open it.'
           )
         if (alive.current && selectedId.current === id) {
-          setSelectedState(detail)
+          setSelectedState(normalizeDetail(detail))
           setConversations((items) =>
             items.map((item) =>
               item.id === id && serverConfirmed ? { ...item, unreadCount: 0 } : item
@@ -192,13 +229,13 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       if (!payload.conversationId) return
       if (payload.message) {
         setConversations((items) =>
-          items
-            .map((item) =>
+          sortConversations(
+            items.map((item) =>
               item.id === payload.conversationId
                 ? {
                     ...item,
-                    updatedAt: payload.message!.createdAt,
-                    lastMessage: payload.message!,
+                    updatedAt: asDate(payload.message!.createdAt),
+                    lastMessage: normalizeMessage(payload.message!),
                     unreadCount:
                       payload.message!.senderId === actorId || selectedId.current === item.id
                         ? item.unreadCount
@@ -206,7 +243,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
                   }
                 : item
             )
-            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+          )
         )
         setSelectedState((current) => {
           if (!current || current.conversation.id !== payload.conversationId) return current
@@ -311,13 +348,13 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       return next
     })
     setConversations((items) =>
-      items
-        .map((conversation) =>
+      sortConversations(
+        items.map((conversation) =>
           conversation.id === id
             ? { ...conversation, lastMessage: optimistic, updatedAt: optimistic.createdAt }
             : conversation
         )
-        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      )
     )
     if (serverConfirmed && navigator.onLine) void syncOutbox(actorId, token).then(loadQueue)
     const pending = await offlineStore.queued(actorId)

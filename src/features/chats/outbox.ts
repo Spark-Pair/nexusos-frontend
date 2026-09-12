@@ -8,7 +8,7 @@ export function syncOutbox(actorId: string, token: string) {
   if (current) return current
   const run = async () => {
     for (const item of await offlineStore.queued(actorId)) {
-      if (!navigator.onLine || sessionStorage.getItem('nexusos-session-token') !== token) return
+      if (!navigator.onLine || localStorage.getItem('nexusos-session-token') !== token) return
       if (item.status === 'failed') continue
       try {
         await messagingApi.send(

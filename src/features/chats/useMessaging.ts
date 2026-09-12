@@ -6,7 +6,8 @@ import {
   messagingApi,
   type ConversationDetail,
   type ConversationSummary,
-  type DirectoryProfile
+  type DirectoryProfile,
+  type Message
 } from './messagingApi'
 import { offlineStore, type QueuedMessage } from './offlineStore'
 import { syncOutbox } from './outbox'
@@ -19,6 +20,24 @@ interface ConversationUpdatedPayload {
   title?: string
   body?: string
   url?: string
+  message?: Message
+  readBy?: string
+  readAt?: string
+}
+
+function mergeMessage(messages: Message[], message: Message) {
+  const exists = messages.some((item) => item.id === message.id)
+  const next = exists
+    ? messages.map((item) => (item.id === message.id ? { ...item, ...message } : item))
+    : [...messages, message]
+  return next.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+}
+
+function readOwnMessages(messages: Message[], actorId: string, readAt: string) {
+  const timestamp = new Date(readAt)
+  return messages.map((message) =>
+    message.senderId === actorId && !message.readAt ? { ...message, readAt: timestamp } : message
+  )
 }
 
 function showRealtimeNotification(payload: ConversationUpdatedPayload) {
@@ -66,6 +85,13 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     if (alive.current) setQueued(items)
   }, [actorId])
   const refresh = useCallback(async () => {
+    const cached = await offlineStore
+      .read<ConversationSummary[]>(actorId, 'conversations')
+      .catch(() => undefined)
+    if (alive.current && cached?.length) {
+      setConversations(cached)
+      setLoading(false)
+    }
     try {
       if (!navigator.onLine || !serverConfirmed)
         throw new Error('Offline: showing saved conversations.')
@@ -82,13 +108,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         await offlineStore.purge(actorId)
         return
       }
-      const cached = await offlineStore
-        .read<ConversationSummary[]>(actorId, 'conversations')
-        .catch(() => undefined)
-      if (alive.current) {
-        if (cached) setConversations(cached)
+      if (!cached?.length)
         setError(cause instanceof Error ? cause.message : 'Unable to load chats.')
-      }
     } finally {
       if (alive.current) setLoading(false)
     }
@@ -99,10 +120,15 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       setOpening(true)
       setCounterpartTyping(false)
       try {
-        let detail: ConversationDetail | undefined
-        if (!navigator.onLine || !serverConfirmed)
-          detail = await offlineStore.read<ConversationDetail>(actorId, id)
-        else {
+        const cached = await offlineStore
+          .read<ConversationDetail>(actorId, id)
+          .catch(() => undefined)
+        if (alive.current && selectedId.current === id && cached) {
+          setSelectedState(cached)
+          setOpening(false)
+        }
+        let detail = cached
+        if (navigator.onLine && serverConfirmed) {
           try {
             detail = await messagingApi.detail(token, id)
           } catch (cause) {
@@ -110,7 +136,6 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
               if ([403, 404].includes(cause.status)) await offlineStore.save(actorId, id, undefined)
               throw cause
             }
-            detail = await offlineStore.read<ConversationDetail>(actorId, id)
           }
         }
         if (!detail)
@@ -124,10 +149,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
               item.id === id && serverConfirmed ? { ...item, unreadCount: 0 } : item
             )
           )
-          if (serverConfirmed && navigator.onLine)
-            await offlineStore
-              .save(actorId, id, { ...detail, messages: detail.messages.slice(-200) })
-              .catch(() => undefined)
+          await offlineStore
+            .save(actorId, id, { ...detail, messages: detail.messages.slice(-200) })
+            .catch(() => undefined)
         }
         return detail
       } catch (cause) {
@@ -165,9 +189,56 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     })
     socket.on('conversation:updated', (payload: ConversationUpdatedPayload) => {
       showRealtimeNotification(payload)
+      if (!payload.conversationId) return
+      if (payload.message) {
+        setConversations((items) =>
+          items
+            .map((item) =>
+              item.id === payload.conversationId
+                ? {
+                    ...item,
+                    updatedAt: payload.message!.createdAt,
+                    lastMessage: payload.message!,
+                    unreadCount:
+                      payload.message!.senderId === actorId || selectedId.current === item.id
+                        ? item.unreadCount
+                        : item.unreadCount + 1
+                  }
+                : item
+            )
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+        )
+        setSelectedState((current) => {
+          if (!current || current.conversation.id !== payload.conversationId) return current
+          const next = { ...current, messages: mergeMessage(current.messages, payload.message!) }
+          void offlineStore
+            .save(actorId, current.conversation.id, {
+              ...next,
+              messages: next.messages.slice(-200)
+            })
+            .catch(() => undefined)
+          return next
+        })
+        return
+      }
+      if (payload.readBy && payload.readBy !== actorId && payload.readAt) {
+        setSelectedState((current) => {
+          if (!current || current.conversation.id !== payload.conversationId) return current
+          const next = {
+            ...current,
+            messages: readOwnMessages(current.messages, actorId, payload.readAt!)
+          }
+          void offlineStore
+            .save(actorId, current.conversation.id, {
+              ...next,
+              messages: next.messages.slice(-200)
+            })
+            .catch(() => undefined)
+          return next
+        })
+        return
+      }
       void refresh()
-      if (payload.conversationId && selectedId.current === payload.conversationId)
-        void open(payload.conversationId).catch(() => undefined)
     })
     socket.on('conversation:typing', (payload: { conversationId: string; active: boolean }) => {
       if (selectedId.current === payload.conversationId) setCounterpartTyping(payload.active)
@@ -183,7 +254,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       window.removeEventListener('online', update)
       window.removeEventListener('offline', update)
     }
-  }, [open, refresh, serverConfirmed, synchronize, token])
+  }, [actorId, open, refresh, serverConfirmed, synchronize, token])
   const search = async (query: string) => {
     const version = ++searchId.current
     const result = await messagingApi.search(token, query)
@@ -221,12 +292,36 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         'Message was not saved. Device storage is unavailable. Keep your text and try again.'
       )
     }
-    if (serverConfirmed && navigator.onLine) await syncOutbox(actorId, token)
+    const optimistic: Message = {
+      id: item.id,
+      conversationId: id,
+      senderId: actorId,
+      body,
+      imageUrls,
+      createdAt: item.createdAt,
+      readAt: null,
+      title: ''
+    }
+    setSelectedState((current) => {
+      if (current?.conversation.id !== id) return current
+      const next = { ...current, messages: mergeMessage(current.messages, optimistic) }
+      void offlineStore
+        .save(actorId, id, { ...next, messages: next.messages.slice(-200) })
+        .catch(() => undefined)
+      return next
+    })
+    setConversations((items) =>
+      items
+        .map((conversation) =>
+          conversation.id === id
+            ? { ...conversation, lastMessage: optimistic, updatedAt: optimistic.createdAt }
+            : conversation
+        )
+        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    )
+    if (serverConfirmed && navigator.onLine) void syncOutbox(actorId, token).then(loadQueue)
     const pending = await offlineStore.queued(actorId)
     setQueued(pending)
-    await refresh()
-    if (selectedId.current === id && serverConfirmed && navigator.onLine)
-      await open(id).catch(() => undefined)
     return pending.find((message) => message.id === item.id)?.status ?? 'sent'
   }
   const retry = async (item: QueuedMessage) => {

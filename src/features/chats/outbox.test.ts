@@ -19,7 +19,7 @@ describe('durable inbox outbox', () => {
   beforeEach(async () => {
     await offlineStore.purge(actor)
     await offlineStore.purge(other)
-    sessionStorage.setItem('nexusos-session-token', 'token')
+    localStorage.setItem('nexusos-session-token', 'token')
   })
   afterEach(() => vi.restoreAllMocks())
   it('keeps network failures queued and reuses the UUID for a single acknowledged message', async () => {
@@ -53,7 +53,7 @@ describe('durable inbox outbox', () => {
   it('never replays after logout or with another session token', async () => {
     await offlineStore.enqueue(queued())
     const send = vi.spyOn(messagingApi, 'send')
-    sessionStorage.removeItem('nexusos-session-token')
+    localStorage.removeItem('nexusos-session-token')
     await syncOutbox(actor, 'token')
     expect(send).not.toHaveBeenCalled()
   })

@@ -29,12 +29,12 @@ function SessionProbe() {
 
 describe('authenticated session lifecycle', () => {
   beforeEach(() => {
-    sessionStorage.clear()
+    localStorage.clear()
     vi.restoreAllMocks()
   })
 
   it('restores a persisted token by confirming it with /auth/me', async () => {
-    sessionStorage.setItem('nexusos-session-token', 'persisted-token')
+    localStorage.setItem('nexusos-session-token', 'persisted-token')
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ data: user, requires_phone: false }), {
         status: 200,
@@ -55,7 +55,7 @@ describe('authenticated session lifecycle', () => {
   })
 
   it('clears an invalid persisted token', async () => {
-    sessionStorage.setItem('nexusos-session-token', 'expired-token')
+    localStorage.setItem('nexusos-session-token', 'expired-token')
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 401 }))
     render(
       <AuthSessionProvider>
@@ -63,7 +63,7 @@ describe('authenticated session lifecycle', () => {
       </AuthSessionProvider>
     )
     await waitFor(() => expect(screen.getByText('anonymous')).toBeVisible())
-    expect(sessionStorage.getItem('nexusos-session-token')).toBeNull()
+    expect(localStorage.getItem('nexusos-session-token')).toBeNull()
   })
 
   it('clears local session state during logout', async () => {
@@ -75,9 +75,9 @@ describe('authenticated session lifecycle', () => {
     )
     await waitFor(() => expect(screen.getByText('anonymous')).toBeVisible())
     screen.getByRole('button', { name: 'Set session' }).click()
-    expect(sessionStorage.getItem('nexusos-session-token')).toBe('new-token')
+    expect(localStorage.getItem('nexusos-session-token')).toBe('new-token')
     screen.getByRole('button', { name: 'Sign out' }).click()
-    await waitFor(() => expect(sessionStorage.getItem('nexusos-session-token')).toBeNull())
+    await waitFor(() => expect(localStorage.getItem('nexusos-session-token')).toBeNull())
     expect(screen.getByText('anonymous')).toBeVisible()
   })
 })

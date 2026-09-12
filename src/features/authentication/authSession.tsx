@@ -28,8 +28,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   const [serverConfirmed, setServerConfirmed] = useState(false)
   const confirmedAt = useRef(0)
   const setSession = useCallback((next: AuthSession) => {
-    sessionStorage.setItem(tokenKey, next.token)
-    sessionStorage.setItem(actorKey, next.data.id)
+    localStorage.setItem(tokenKey, next.token)
+    localStorage.setItem(actorKey, next.data.id)
     setSessionState(next)
     setStatus('authenticated')
     setServerConfirmed(true)
@@ -37,10 +37,10 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     void offlineStore.remember(next).catch(() => undefined)
   }, [])
   const signOut = useCallback(async () => {
-    const token = sessionStorage.getItem(tokenKey)
-    const actor = sessionStorage.getItem(actorKey)
-    sessionStorage.removeItem(tokenKey)
-    sessionStorage.removeItem(actorKey)
+    const token = localStorage.getItem(tokenKey)
+    const actor = localStorage.getItem(actorKey)
+    localStorage.removeItem(tokenKey)
+    localStorage.removeItem(actorKey)
     setSessionState(undefined)
     setStatus('anonymous')
     setServerConfirmed(false)
@@ -53,7 +53,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     let restoring = false
     const restore = async () => {
       if (restoring) return
-      const token = sessionStorage.getItem(tokenKey)
+      const token = localStorage.getItem(tokenKey)
       if (!token) {
         setStatus('anonymous')
         return
@@ -62,17 +62,17 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       try {
         if (!navigator.onLine) throw new Error('Offline')
         const next = await authApi.restore(token)
-        if (active && sessionStorage.getItem(tokenKey) === token) setSession(next)
+        if (active && localStorage.getItem(tokenKey) === token) setSession(next)
       } catch (cause) {
         confirmedAt.current = 0
-        if (!active || sessionStorage.getItem(tokenKey) !== token) return
+        if (!active || localStorage.getItem(tokenKey) !== token) return
         if (cause instanceof ApiError && [401, 403].includes(cause.status)) {
           await signOut()
           return
         }
-        const actor = sessionStorage.getItem(actorKey)
+        const actor = localStorage.getItem(actorKey)
         const cached = actor ? await offlineStore.identity(actor).catch(() => undefined) : undefined
-        if (!active || sessionStorage.getItem(tokenKey) !== token) return
+        if (!active || localStorage.getItem(tokenKey) !== token) return
         if (cached) {
           setSessionState({ ...cached, token })
           setStatus('authenticated')
@@ -87,11 +87,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       }
     }
     void restore()
-    const timer = window.setInterval(() => {
-      // Resume reliably after an offline reload or a suspended installed PWA,
-      // including browsers which do not dispatch a new online event.
-      if (navigator.onLine && Date.now() - confirmedAt.current > 60000) void restore()
-    }, 3000)
+
     const reconnect = () => {
       void restore()
     }
@@ -104,7 +100,6 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     window.addEventListener('nexusos-session-expired', reconnect)
     return () => {
       active = false
-      window.clearInterval(timer)
       window.removeEventListener('online', reconnect)
       window.removeEventListener('offline', disconnect)
       window.removeEventListener('nexusos-session-expired', reconnect)

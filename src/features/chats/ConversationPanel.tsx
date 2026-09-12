@@ -466,13 +466,7 @@ export function ConversationPanel({
                 stickToBottom.current = true
                 try {
                   const result = await onSend(body, files)
-                  if (result === 'queued')
-                    toast({
-                      title: 'Message queued',
-                      description: 'It will send after reconnecting.',
-                      tone: 'info'
-                    })
-                  else if (result === 'failed')
+                  if (result === 'failed')
                     toast({
                       title: 'Message not sent',
                       description: 'Use Retry on the message to try again.',

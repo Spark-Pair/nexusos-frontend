@@ -14,6 +14,7 @@ const messageSchema = z.object({
   senderId: z.string().uuid(),
   body: z.string(),
   createdAt: z.coerce.date(),
+  deliveredAt: z.coerce.date().nullable().optional(),
   readAt: z.coerce.date().nullable(),
   broadcastId: z.string().uuid().nullable().optional(),
   title: z.string().default(''),

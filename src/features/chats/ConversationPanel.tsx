@@ -358,6 +358,8 @@ export function ConversationPanel({
                     {own &&
                       (message.readAt ? (
                         <CheckCheck className="size-3.5 text-blue-600" aria-label="Read" />
+                      ) : message.deliveredAt ? (
+                        <CheckCheck className="size-3.5" aria-label="Delivered" />
                       ) : (
                         <Check className="size-3.5" aria-label="Sent to server" />
                       ))}

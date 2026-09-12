@@ -23,6 +23,8 @@ interface ConversationUpdatedPayload {
   message?: Message
   readBy?: string
   readAt?: string
+  deliveredBy?: string
+  deliveredAt?: string
 }
 
 function asDate(value: Date | string) {
@@ -33,6 +35,7 @@ function normalizeMessage(message: Message): Message {
   return {
     ...message,
     createdAt: asDate(message.createdAt),
+    deliveredAt: message.deliveredAt ? asDate(message.deliveredAt) : null,
     readAt: message.readAt ? asDate(message.readAt) : null
   }
 }
@@ -74,6 +77,15 @@ function readOwnMessages(messages: Message[], actorId: string, readAt: string) {
   const timestamp = new Date(readAt)
   return messages.map((message) =>
     message.senderId === actorId && !message.readAt ? { ...message, readAt: timestamp } : message
+  )
+}
+
+function deliverOwnMessages(messages: Message[], actorId: string, deliveredAt: string) {
+  const timestamp = new Date(deliveredAt)
+  return messages.map((message) =>
+    message.senderId === actorId && !message.deliveredAt
+      ? { ...message, deliveredAt: timestamp }
+      : message
   )
 }
 
@@ -275,6 +287,23 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         })
         return
       }
+      if (payload.deliveredBy && payload.deliveredBy !== actorId && payload.deliveredAt) {
+        setSelectedState((current) => {
+          if (!current || current.conversation.id !== payload.conversationId) return current
+          const next = {
+            ...current,
+            messages: deliverOwnMessages(current.messages, actorId, payload.deliveredAt!)
+          }
+          void offlineStore
+            .save(actorId, current.conversation.id, {
+              ...next,
+              messages: next.messages.slice(-200)
+            })
+            .catch(() => undefined)
+          return next
+        })
+        return
+      }
       void refresh()
     })
     socket.on('conversation:typing', (payload: { conversationId: string; active: boolean }) => {
@@ -335,6 +364,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       body,
       imageUrls: localImageUrls,
       createdAt: item.createdAt,
+      deliveredAt: null,
       readAt: null,
       title: ''
     }

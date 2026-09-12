@@ -12,6 +12,7 @@ import {
   Check,
   CheckCheck,
   Clock3,
+  Copy,
   Info,
   Megaphone,
   Search,
@@ -158,6 +159,19 @@ export function ConversationPanel({
     } finally {
       pending.current = false
       setBusy('')
+    }
+  }
+  const copyMessage = async (body: string) => {
+    if (!body.trim()) return
+    try {
+      await navigator.clipboard.writeText(body)
+      toast({ title: 'Message copied', tone: 'success' })
+    } catch {
+      toast({
+        title: 'Could not copy message',
+        description: 'Select the message text manually.',
+        tone: 'danger'
+      })
     }
   }
   const pendingForCustomer =
@@ -321,10 +335,21 @@ export function ConversationPanel({
                 )}
                 <article
                   className={
-                    'message-bubble ' +
+                    'message-bubble group relative ' +
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
                 >
+                  {message.body.trim() && (
+                    <div className="absolute -top-3 right-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                      <IconButton
+                        label="Copy message"
+                        icon={<Copy className="size-3.5" />}
+                        size="sm"
+                        variant="quiet"
+                        onClick={() => void copyMessage(message.body)}
+                      />
+                    </div>
+                  )}
                   {message.broadcastId && (
                     <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
                       <Megaphone className="size-3" />

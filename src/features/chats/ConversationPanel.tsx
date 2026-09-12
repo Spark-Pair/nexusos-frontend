@@ -103,14 +103,17 @@ export function ConversationPanel({
   const [reported, setReported] = useState<string[]>([])
   const [busy, setBusy] = useState('')
   const [scrolledUp, setScrolledUp] = useState(false)
+  const [newMessages, setNewMessages] = useState(0)
   const pending = useRef(false)
   const scroll = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
+  const lastSeenLatest = useRef<string | undefined>(detail.messages.at(-1)?.id)
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const node = scroll.current
     if (!node) return
     node.scrollTo({ top: node.scrollHeight, behavior })
     setScrolledUp(false)
+    setNewMessages(0)
   }, [])
   const closeInfo = useCallback(() => setInfo(false), [])
   const closeImage = useCallback(() => setImage(undefined), [])
@@ -120,13 +123,25 @@ export function ConversationPanel({
   const latest = detail.messages.at(-1)?.id
   useLayoutEffect(() => {
     stickToBottom.current = true
+    setNewMessages(0)
+    lastSeenLatest.current = undefined
     scrollToBottom()
     const frame = window.requestAnimationFrame(() => scrollToBottom())
     return () => window.cancelAnimationFrame(frame)
   }, [detail.conversation.id, scrollToBottom])
   useLayoutEffect(() => {
+    if (!latest || latest === lastSeenLatest.current) return
+    if (stickToBottom.current) {
+      lastSeenLatest.current = latest
+      scrollToBottom()
+      return
+    }
+    lastSeenLatest.current = latest
+    setNewMessages((count) => count + 1)
+  }, [latest, scrollToBottom])
+  useLayoutEffect(() => {
     if (stickToBottom.current) scrollToBottom()
-  }, [latest, queued.length, searching, scrollToBottom])
+  }, [queued.length, searching, scrollToBottom])
   const run = async (id: string, action: () => Promise<void>, success: string) => {
     if (pending.current) return
     pending.current = true
@@ -276,6 +291,7 @@ export function ConversationPanel({
           if (node) {
             stickToBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 100
             setScrolledUp(!stickToBottom.current)
+            if (stickToBottom.current) setNewMessages(0)
           }
         }}
       >
@@ -450,13 +466,22 @@ export function ConversationPanel({
       </div>
       {scrolledUp && (
         <div className="absolute bottom-28 right-5">
-          <IconButton
-            label="Jump to latest message"
-            icon={<ArrowDown className="size-5" />}
-            onClick={() => {
-              if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight
-            }}
-          />
+          {newMessages ? (
+            <button
+              type="button"
+              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--color-primary)] px-4 text-sm font-semibold text-white shadow-lg shadow-emerald-950/10 transition active:scale-95"
+              onClick={() => scrollToBottom('smooth')}
+            >
+              <ArrowDown className="size-4" />
+              {newMessages === 1 ? '1 new message' : `${newMessages} new messages`}
+            </button>
+          ) : (
+            <IconButton
+              label="Jump to latest message"
+              icon={<ArrowDown className="size-5" />}
+              onClick={() => scrollToBottom('smooth')}
+            />
+          )}
         </div>
       )}
       {pendingForCustomer ? (

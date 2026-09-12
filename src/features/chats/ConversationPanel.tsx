@@ -20,7 +20,7 @@ import {
   X,
   ArrowDown
 } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ConversationDetail } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
@@ -28,10 +28,12 @@ import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 function QueuedImagePreview({
   image,
   index,
+  onLoad,
   onOpen
 }: {
   image: { blob: Blob; name: string }
   index: number
+  onLoad?: () => void
   onOpen: (url: string) => void
 }) {
   const [url, setUrl] = useState('')
@@ -52,6 +54,7 @@ function QueuedImagePreview({
         src={url}
         alt={image.name || 'Queued image ' + (index + 1)}
         loading="lazy"
+        onLoad={onLoad}
         className="max-h-72 w-full object-cover"
       />
     </button>
@@ -103,16 +106,27 @@ export function ConversationPanel({
   const pending = useRef(false)
   const scroll = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const node = scroll.current
+    if (!node) return
+    node.scrollTo({ top: node.scrollHeight, behavior })
+    setScrolledUp(false)
+  }, [])
   const closeInfo = useCallback(() => setInfo(false), [])
   const closeImage = useCallback(() => setImage(undefined), [])
   const closeReport = useCallback(() => {
     if (!pending.current) setReport(undefined)
   }, [])
   const latest = detail.messages.at(-1)?.id
-  useEffect(() => {
-    if (stickToBottom.current && scroll.current)
-      scroll.current.scrollTop = scroll.current.scrollHeight
-  }, [latest, queued.length, searching])
+  useLayoutEffect(() => {
+    stickToBottom.current = true
+    scrollToBottom()
+    const frame = window.requestAnimationFrame(() => scrollToBottom())
+    return () => window.cancelAnimationFrame(frame)
+  }, [detail.conversation.id, scrollToBottom])
+  useLayoutEffect(() => {
+    if (stickToBottom.current) scrollToBottom()
+  }, [latest, queued.length, searching, scrollToBottom])
   const run = async (id: string, action: () => Promise<void>, success: string) => {
     if (pending.current) return
     pending.current = true
@@ -314,6 +328,9 @@ export function ConversationPanel({
                         src={broadcastMediaUrl(url)}
                         alt={'Message image ' + (imageIndex + 1)}
                         loading="lazy"
+                        onLoad={() => {
+                          if (stickToBottom.current) scrollToBottom()
+                        }}
                         className="max-h-72 w-full object-cover"
                       />
                     </button>
@@ -364,6 +381,9 @@ export function ConversationPanel({
                       src={broadcastMediaUrl(url)}
                       alt={'Queued image ' + (imageIndex + 1)}
                       loading="lazy"
+                      onLoad={() => {
+                        if (stickToBottom.current) scrollToBottom()
+                      }}
                       className="max-h-72 w-full object-cover"
                     />
                   </button>
@@ -374,6 +394,9 @@ export function ConversationPanel({
                       key={`${item.id}-${imageIndex}`}
                       image={image}
                       index={imageIndex}
+                      onLoad={() => {
+                        if (stickToBottom.current) scrollToBottom()
+                      }}
                       onOpen={setImage}
                     />
                   ))}

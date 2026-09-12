@@ -23,7 +23,7 @@ describe('messaging components', () => {
     render(<MessageComposer onSubmit={onSubmit} quickReplies={['Do you offer COD?']} />)
     fireEvent.click(screen.getByRole('button', { name: 'Do you offer COD?' }))
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
-    expect(onSubmit).toHaveBeenCalledWith('Do you offer COD?')
+    expect(onSubmit).toHaveBeenCalledWith('Do you offer COD?', [])
     expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue('')
   })
 

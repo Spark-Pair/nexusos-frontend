@@ -1,5 +1,4 @@
 import { Button } from '@shared/components/Button'
-import { Combobox } from '@shared/components/Combobox'
 import { Input, Textarea } from '@shared/components/FormControls'
 import { useToast } from '@shared/components/toastContext'
 import { ImagePlus, Send, X } from 'lucide-react'
@@ -39,8 +38,8 @@ export function BroadcastComposer({
 }: {
   token: string
   lists: BroadcastList[]
-  selected: string
-  onSelect: (id: string) => void
+  selected: string[]
+  onSelect: (ids: string[]) => void
   draft: BroadcastDraft | null
   onCreateList: () => void
   onSaved: () => void
@@ -53,10 +52,12 @@ export function BroadcastComposer({
   const [urls, setUrls] = useState(draft?.imageUrls ?? [])
   const [draftId, setDraftId] = useState(draft?.id ?? '')
   const [busy, setBusy] = useState<'publish' | 'draft' | null>(null)
+  const [scheduledFor, setScheduledFor] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const pending = useRef(false)
-  const audience = lists.find((list) => list.id === selected)
+  const selectedLists = lists.filter((list) => selected.includes(list.id))
+  const audienceCount = new Set(selectedLists.flatMap((list) => list.customerIds)).size
   const save = async (mode: 'publish' | 'draft') => {
     if (pending.current) return
     pending.current = true
@@ -71,7 +72,7 @@ export function BroadcastComposer({
         const id = draftId || crypto.randomUUID()
         setDraftId(id)
         await broadcastApi.saveDraft(token, id, {
-          list_id: selected || null,
+          list_id: selected[0] ?? null,
           title: title.trim(),
           body: body.trim(),
           image_urls: imageUrls
@@ -82,20 +83,24 @@ export function BroadcastComposer({
         onSaved()
       } else {
         await broadcastApi.publish(token, {
-          list_id: selected,
+          list_ids: selected,
           title: title.trim(),
           body: body.trim(),
-          image_urls: imageUrls
+          image_urls: imageUrls,
+          ...(scheduledFor ? { scheduled_for: new Date(scheduledFor).toISOString() } : {})
         })
         // Publishing has succeeded. A draft cleanup failure must never encourage a duplicate send.
         setTitle('')
         setBody('')
         setUrls([])
         setDraftId('')
-        setNotice('Broadcast published.')
+        setScheduledFor('')
+        setNotice(scheduledFor ? 'Broadcast scheduled.' : 'Broadcast published.')
         toast({
-          title: 'Broadcast published',
-          description: 'Added to eligible customer chats.',
+          title: scheduledFor ? 'Broadcast scheduled' : 'Broadcast published',
+          description: scheduledFor
+            ? 'It will auto-send at the scheduled time.'
+            : 'Added to eligible customer chats.',
           tone: 'success'
         })
         if (draftId)
@@ -124,7 +129,7 @@ export function BroadcastComposer({
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (audience?.customerIds.length && title.trim() && body.trim()) void save('publish')
+    if (audienceCount && title.trim() && body.trim()) void save('publish')
   }
   return (
     <form onSubmit={submit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -225,31 +230,59 @@ export function BroadcastComposer({
       <aside className="contents lg:order-2 lg:block lg:min-w-0 lg:space-y-5 lg:border-l lg:border-slate-200 lg:pl-6 dark:lg:border-slate-700">
         <fieldset disabled={busy !== null} className="order-1 grid min-w-0 gap-3">
           <h2 className="text-sm font-semibold">Audience</h2>
-          <Combobox
-            label="Broadcast list"
-            value={selected}
-            onChange={onSelect}
-            options={lists.map((list) => ({
-              value: list.id,
-              label: list.name,
-              description: `${list.customerIds.length} members`
-            }))}
-            placeholder="Choose a list"
-            disabled={busy !== null}
-          />
+          <div className="grid gap-2 rounded-[var(--radius-control)] border border-slate-200 p-2 dark:border-slate-700">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Broadcast lists
+            </span>
+            <div className="grid max-h-48 gap-1 overflow-y-auto">
+              {lists.map((list) => (
+                <label
+                  key={list.id}
+                  className="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+                >
+                  <input
+                    type="checkbox"
+                    className="size-4"
+                    checked={selected.includes(list.id)}
+                    onChange={(event) =>
+                      onSelect(
+                        event.target.checked
+                          ? [...selected, list.id]
+                          : selected.filter((id) => id !== list.id)
+                      )
+                    }
+                  />
+                  <span className="min-w-0 flex-1 truncate">{list.name}</span>
+                  <span className="text-xs text-slate-500">{list.customerIds.length}</span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span>
-              {audience ? `${audience.customerIds.length} list members` : 'Select your audience'}
+              {selectedLists.length
+                ? `${audienceCount} unique recipients from ${selectedLists.length} list(s)`
+                : 'Select your audience'}
             </span>
             <Button size="sm" variant="quiet" onClick={onCreateList}>
               New list
             </Button>
           </div>
-          {audience && !audience.customerIds.length && (
+          {selectedLists.length > 0 && !audienceCount && (
             <p className="text-sm text-amber-700 dark:text-amber-300">
               Add members to this list before publishing.
             </p>
           )}
+        </fieldset>
+        <fieldset disabled={busy !== null} className="order-3 grid gap-2">
+          <Input
+            label="Schedule time"
+            type="datetime-local"
+            optional
+            value={scheduledFor}
+            onChange={(event) => setScheduledFor(event.target.value)}
+            hint="Leave empty to send now."
+          />
         </fieldset>
         <details className="order-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950" open>
           <summary className="cursor-pointer text-sm font-medium">Message preview</summary>
@@ -281,9 +314,9 @@ export function BroadcastComposer({
             </p>
           ) : (
             <p className="text-slate-500 dark:text-slate-400">
-              {audience
-                ? `${audience.customerIds.length} members in ${audience.name}`
-                : 'Choose a list before publishing.'}
+              {selectedLists.length
+                ? `${audienceCount} unique recipients selected`
+                : 'Choose at least one list before publishing.'}
             </p>
           )}
         </div>
@@ -303,12 +336,10 @@ export function BroadcastComposer({
             type="submit"
             variant="primary"
             loading={busy === 'publish'}
-            disabled={
-              busy !== null || !audience?.customerIds.length || !title.trim() || !body.trim()
-            }
+            disabled={busy !== null || !audienceCount || !title.trim() || !body.trim()}
           >
             <Send className="size-4" aria-hidden="true" />
-            Publish broadcast
+            {scheduledFor ? 'Schedule broadcast' : 'Publish broadcast'}
           </Button>
         </div>
       </footer>

@@ -198,15 +198,19 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     await messagingApi.respond(token, selectedId.current, decision)
     await synchronize()
   }
-  const send = async (body: string) => {
+  const send = async (body: string, files: File[] = []) => {
     const id = selectedId.current
     if (!id || selected?.conversation.status !== 'accepted')
       throw new Error('Open an accepted conversation first.')
+    if (files.length && (!serverConfirmed || !navigator.onLine))
+      throw new Error('Connect to the internet to send images.')
+    const imageUrls = files.length ? await messagingApi.upload(token, files) : []
     const item: QueuedMessage = {
       id: crypto.randomUUID(),
       actorId,
       conversationId: id,
       body,
+      imageUrls,
       createdAt: new Date(),
       status: 'queued'
     }

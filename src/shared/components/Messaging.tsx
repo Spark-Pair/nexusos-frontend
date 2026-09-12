@@ -75,12 +75,13 @@ export function MessageComposer({
   quickReplies = []
 }: {
   onAddImage?: () => void
-  onSubmit: (body: string) => void | Promise<void>
+  onSubmit: (body: string, files: File[]) => void | Promise<void>
   onTyping?: (active: boolean) => void
   quickReplies?: readonly string[]
 }) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
   const pending = useRef(false)
@@ -95,15 +96,16 @@ export function MessageComposer({
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const body = draft.trim()
-    if (!body || pending.current) return
+    if ((!body && !files.length) || pending.current) return
     pending.current = true
     setSending(true)
     setError('')
     try {
-      const result = onSubmit(body)
+      const result = onSubmit(body, files)
       if (result) await result
       typing(false)
       setDraft('')
+      setFiles([])
       setEmojiOpen(false)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Message was not sent. Please retry.')
@@ -168,6 +170,17 @@ export function MessageComposer({
           ))}
         </div>
       )}
+      {files.length ? (
+        <div className="mb-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {files.map((file, index) => (
+            <ImageAttachment
+              key={`${file.name}-${index}`}
+              name={file.name}
+              onRemove={() => setFiles((current) => current.filter((_, i) => i !== index))}
+            />
+          ))}
+        </div>
+      ) : null}
       <form
         onSubmit={(event) => void submit(event)}
         className="composer-panel flex items-end gap-1 p-2"
@@ -180,14 +193,40 @@ export function MessageComposer({
           disabled={sending}
           onClick={() => setEmojiOpen((value) => !value)}
         />
-        {onAddImage ? (
-          <IconButton
-            onClick={onAddImage}
-            label="Add image placeholder"
-            icon={<ImagePlus className="size-5" />}
-            variant="quiet"
+        <label
+          className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-[var(--radius-control)] text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+          aria-label="Add images"
+        >
+          <ImagePlus className="size-5" />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="sr-only"
+            disabled={sending}
+            onChange={(event) => {
+              const added = Array.from(event.target.files ?? [])
+              event.target.value = ''
+              if (
+                added.some(
+                  (file) =>
+                    !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
+                    file.size > 5 * 1024 * 1024
+                )
+              ) {
+                setError('Use JPEG, PNG or WebP images up to 5 MB each.')
+                return
+              }
+              if (files.length + added.length > 10) {
+                setError('You can attach up to 10 images.')
+                return
+              }
+              setFiles((current) => [...current, ...added])
+              onAddImage?.()
+              setError('')
+            }}
           />
-        ) : null}
+        </label>
         <label className="sr-only" htmlFor={inputId}>
           Message
         </label>
@@ -228,7 +267,7 @@ export function MessageComposer({
               <SendHorizontal className="size-5" />
             )
           }
-          disabled={sending || !draft.trim()}
+          disabled={sending || (!draft.trim() && !files.length)}
           variant="brand"
           size="md"
         />

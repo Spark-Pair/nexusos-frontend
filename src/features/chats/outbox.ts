@@ -11,7 +11,13 @@ export function syncOutbox(actorId: string, token: string) {
       if (!navigator.onLine || sessionStorage.getItem('nexusos-session-token') !== token) return
       if (item.status === 'failed') continue
       try {
-        await messagingApi.send(token, item.conversationId, item.body, item.id)
+        await messagingApi.send(
+          token,
+          item.conversationId,
+          item.body,
+          item.id,
+          item.imageUrls ?? []
+        )
         await offlineStore.remove(item.id)
       } catch (cause) {
         if (cause instanceof ApiError) {

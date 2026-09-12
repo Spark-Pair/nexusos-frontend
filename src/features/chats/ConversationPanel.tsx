@@ -46,7 +46,7 @@ export function ConversationPanel({
   currentUserId: string
   onBack: () => void
   onRespond: (decision: 'accepted' | 'rejected') => Promise<void>
-  onSend: (body: string) => Promise<'queued' | 'failed' | 'sent'>
+  onSend: (body: string, files?: File[]) => Promise<'queued' | 'failed' | 'sent'>
   counterpartTyping: boolean
   onTyping: (active: boolean) => void
   archived: boolean
@@ -274,12 +274,12 @@ export function ConversationPanel({
                       type="button"
                       key={url}
                       className="mb-2 block overflow-hidden rounded-xl"
-                      aria-label={'View broadcast image ' + (imageIndex + 1)}
+                      aria-label={'View image ' + (imageIndex + 1)}
                       onClick={() => setImage(url)}
                     >
                       <img
                         src={broadcastMediaUrl(url)}
-                        alt={'Broadcast image ' + (imageIndex + 1)}
+                        alt={'Message image ' + (imageIndex + 1)}
                         loading="lazy"
                         className="max-h-72 w-full object-cover"
                       />
@@ -319,7 +319,25 @@ export function ConversationPanel({
           {!query &&
             unsent.map((item) => (
               <article key={item.id} className="message-bubble message-bubble-outgoing">
-                <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
+                {item.imageUrls?.map((url, imageIndex) => (
+                  <button
+                    type="button"
+                    key={url}
+                    className="mb-2 block overflow-hidden rounded-xl"
+                    aria-label={'View queued image ' + (imageIndex + 1)}
+                    onClick={() => setImage(url)}
+                  >
+                    <img
+                      src={broadcastMediaUrl(url)}
+                      alt={'Queued image ' + (imageIndex + 1)}
+                      loading="lazy"
+                      className="max-h-72 w-full object-cover"
+                    />
+                  </button>
+                ))}
+                {item.body ? (
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
+                ) : null}
                 <p
                   role="status"
                   className={
@@ -402,10 +420,10 @@ export function ConversationPanel({
         <footer className="px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 sm:pb-3">
           <div className="mx-auto max-w-3xl">
             <MessageComposer
-              onSubmit={async (body) => {
+              onSubmit={async (body, files) => {
                 stickToBottom.current = true
                 try {
-                  const result = await onSend(body)
+                  const result = await onSend(body, files)
                   if (result === 'queued')
                     toast({
                       title: 'Message queued',

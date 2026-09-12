@@ -33,7 +33,7 @@ describe('durable inbox outbox', () => {
     expect(await offlineStore.queued(actor)).toHaveLength(1)
     await Promise.all([syncOutbox(actor, 'token'), syncOutbox(actor, 'token')])
     expect(send).toHaveBeenCalledTimes(2)
-    expect(send).toHaveBeenLastCalledWith('token', conversation, item.body, item.id)
+    expect(send).toHaveBeenLastCalledWith('token', conversation, item.body, item.id, [])
     expect(await offlineStore.queued(actor)).toHaveLength(0)
   })
   it('exposes denied messages as failed and does not auto-retry them', async () => {

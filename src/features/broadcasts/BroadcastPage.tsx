@@ -41,7 +41,7 @@ export default function BroadcastPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState<BroadcastList | null | undefined>()
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
   const [draft, setDraft] = useState<BroadcastDraft | null>(null)
   const [composerVersion, setComposerVersion] = useState(0)
   const [notice, setNotice] = useState('')
@@ -94,7 +94,7 @@ export default function BroadcastPage() {
       ? await broadcastApi.updateList(token, editor.id, name, ids)
       : await broadcastApi.createList(token, name, ids)
     setLists((current) => [saved, ...current.filter((list) => list.id !== saved.id)])
-    setSelected(saved.id)
+    setSelected([saved.id])
     setEditor(undefined)
     setNotice(editor ? 'Broadcast list updated.' : 'Broadcast list created.')
     toast({ title: editor ? 'List updated' : 'List created', tone: 'success' })
@@ -112,7 +112,8 @@ export default function BroadcastPage() {
         setDrafts((current) =>
           current.map((item) => (item.listId === deleting.id ? { ...item, listId: null } : item))
         )
-        if (selected === deleting.id) setSelected('')
+        if (selected.includes(deleting.id))
+          setSelected((current) => current.filter((id) => id !== deleting.id))
       } else {
         await broadcastApi.removeDraft(token, deleting.id)
         setDrafts((current) => current.filter((item) => item.id !== deleting.id))
@@ -244,7 +245,7 @@ export default function BroadcastPage() {
                         size="sm"
                         disabled={!list.customerIds.length}
                         onClick={() => {
-                          setSelected(list.id)
+                          setSelected([list.id])
                           changeView('compose')
                         }}
                       >
@@ -331,7 +332,7 @@ export default function BroadcastPage() {
                     size="sm"
                     onClick={() => {
                       setDraft(item)
-                      setSelected(item.listId ?? '')
+                      setSelected(item.listId ? [item.listId] : [])
                       setComposerVersion((current) => current + 1)
                       changeView('compose')
                     }}
@@ -380,6 +381,7 @@ export default function BroadcastPage() {
         <BroadcastListEditor
           list={editor}
           customers={customers}
+          lists={lists}
           customerError={errors.customers ?? ''}
           loading={loading}
           onRetry={() => void load()}

@@ -102,11 +102,36 @@ export const messagingApi = {
       method: 'POST',
       body: JSON.stringify({ decision })
     }),
-  send: async (token: string, id: string, body: string, clientId?: string) =>
+  upload: async (token: string, files: File[]) => {
+    const body = new FormData()
+    files.forEach((file) => body.append('images', file))
+    const response = await fetch(`${baseUrl}/media/images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body
+    })
+    const json: unknown = await response.json().catch(() => null)
+    if (!response.ok) throw new Error('Image upload failed.')
+    return z
+      .object({ data: z.array(z.object({ url: z.string() })) })
+      .parse(json)
+      .data.map((item) => item.url)
+  },
+  send: async (
+    token: string,
+    id: string,
+    body: string,
+    clientId?: string,
+    imageUrls: string[] = []
+  ) =>
     z.object({ data: messageSchema }).parse(
       await call(`/conversations/${id}/messages`, token, {
         method: 'POST',
-        body: JSON.stringify({ body, ...(clientId ? { client_id: clientId } : {}) })
+        body: JSON.stringify({
+          body,
+          image_urls: imageUrls,
+          ...(clientId ? { client_id: clientId } : {})
+        })
       })
     ).data,
   state: (token: string, id: string, state: { archived?: boolean; muted?: boolean }) =>

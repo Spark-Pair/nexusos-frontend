@@ -17,6 +17,7 @@ export interface QueuedMessage {
   actorId: string
   conversationId: string
   body: string
+  imageUrls?: string[]
   createdAt: Date
   status: 'queued' | 'failed'
   error?: string

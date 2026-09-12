@@ -11,6 +11,7 @@ export function BroadcastListEditor({
   list,
   customers,
   customerError,
+  lists = [],
   loading = false,
   onRetry,
   onClose,
@@ -19,6 +20,7 @@ export function BroadcastListEditor({
   list: BroadcastList | null
   customers: BroadcastCustomer[]
   customerError: string
+  lists?: BroadcastList[]
   loading?: boolean
   onRetry: () => void
   onClose: () => void
@@ -37,6 +39,8 @@ export function BroadcastListEditor({
   const visible = customers.filter((customer) =>
     `${customer.name} ${customer.username}`.toLowerCase().includes(query.trim().toLowerCase())
   )
+  const memberships = (customerId: string) =>
+    lists.filter((item) => item.id !== list?.id && item.customerIds.includes(customerId))
   const allSelected = visible.length > 0 && visible.every((customer) => ids.includes(customer.id))
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -154,6 +158,14 @@ export function BroadcastListEditor({
                         <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
                           @{customer.username}
                         </span>
+                        {memberships(customer.id).length ? (
+                          <span className="mt-1 block truncate text-[11px] text-blue-600 dark:text-blue-300">
+                            Already in:{' '}
+                            {memberships(customer.id)
+                              .map((item) => item.name)
+                              .join(', ')}
+                          </span>
+                        ) : null}
                       </span>
                     </label>
                   ))}

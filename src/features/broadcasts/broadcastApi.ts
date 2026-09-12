@@ -11,10 +11,13 @@ const broadcast = z.object({
   id: z.string().uuid(),
   businessId: z.string().uuid(),
   listId: z.string().uuid(),
+  listIds: z.array(z.string().uuid()).optional(),
   title: z.string(),
   body: z.string(),
   imageUrls: z.array(z.string()),
   publishedAt: z.coerce.date(),
+  scheduledFor: z.coerce.date().nullable().optional(),
+  deliveredAt: z.coerce.date().nullable().optional(),
   businessName: z.string().optional(),
   readAt: z.coerce.date().nullable().optional(),
   saved: z.boolean().default(false),
@@ -64,7 +67,7 @@ export const broadcastApi = {
   upload: async (t: string, files: File[]) => {
     const body = new FormData()
     files.forEach((file) => body.append('images', file))
-    const r = await fetch(`${base}/broadcasts/images`, {
+    const r = await fetch(`${base}/media/images`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${t}` },
       body
@@ -103,7 +106,14 @@ export const broadcastApi = {
     z.object({ data: z.array(broadcast) }).parse(await call(t, '/broadcasts')).data,
   publish: (
     t: string,
-    v: { list_id: string; title: string; body: string; image_urls?: string[] }
+    v: {
+      list_id?: string
+      list_ids?: string[]
+      title: string
+      body: string
+      image_urls?: string[]
+      scheduled_for?: string
+    }
   ) => call(t, '/broadcasts', { method: 'POST', body: JSON.stringify(v) }),
   state: (t: string, id: string, value: { read?: true; saved?: boolean; reported?: true }) =>
     call(t, `/broadcasts/${id}/state`, { method: 'PATCH', body: JSON.stringify(value) }),

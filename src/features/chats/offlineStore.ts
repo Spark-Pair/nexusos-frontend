@@ -28,7 +28,7 @@ export interface QueuedMessage {
   replyToBody?: string | null
   replyToSenderId?: string | null
   createdAt: Date
-  status: 'queued' | 'failed'
+  status: 'queued' | 'uploading' | 'sending' | 'failed'
   error?: string
 }
 class InboxDatabase extends Dexie {

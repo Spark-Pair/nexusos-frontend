@@ -21,7 +21,8 @@ const messageSchema = z.object({
   imageUrls: z.array(z.string()).default([]),
   replyToMessageId: z.string().uuid().nullable().optional(),
   replyToBody: z.string().nullable().optional(),
-  replyToSenderId: z.string().uuid().nullable().optional()
+  replyToSenderId: z.string().uuid().nullable().optional(),
+  localStatus: z.enum(['queued', 'uploading', 'sending', 'failed']).optional()
 })
 const conversationSchema = z.object({
   id: z.string().uuid(),

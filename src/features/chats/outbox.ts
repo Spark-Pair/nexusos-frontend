@@ -1,8 +1,18 @@
 import { ApiError } from '@shared/ApiError'
 import { messagingApi } from './messagingApi'
-import { offlineStore } from './offlineStore'
+import { offlineStore, type QueuedMessage } from './offlineStore'
 
 const syncing = new Map<string, Promise<void>>()
+
+function notifyOutbox() {
+  window.dispatchEvent(new Event('nexusos-outbox-updated'))
+}
+
+async function updateItem(id: string, value: Partial<QueuedMessage>) {
+  await offlineStore.update(id, value)
+  notifyOutbox()
+}
+
 export function syncOutbox(actorId: string, token: string) {
   const current = syncing.get(actorId)
   if (current) return current
@@ -13,11 +23,14 @@ export function syncOutbox(actorId: string, token: string) {
       try {
         let imageUrls = item.imageUrls ?? []
         if (!imageUrls.length && item.images?.length) {
+          await updateItem(item.id, { status: 'uploading', error: '' })
           imageUrls = await messagingApi.upload(
             token,
             item.images.map((image) => new File([image.blob], image.name, { type: image.type }))
           )
-          await offlineStore.update(item.id, { imageUrls })
+          await updateItem(item.id, { imageUrls, status: 'sending' })
+        } else {
+          await updateItem(item.id, { status: 'sending', error: '' })
         }
         await messagingApi.send(
           token,
@@ -28,14 +41,22 @@ export function syncOutbox(actorId: string, token: string) {
           item.replyToMessageId
         )
         await offlineStore.remove(item.id)
+        notifyOutbox()
       } catch (cause) {
         if (cause instanceof ApiError) {
           if (cause.status === 401) {
             await offlineStore.purge(actorId)
+            notifyOutbox()
             throw cause
           }
-          if (cause.status < 500 && cause.status !== 429)
+          if (cause.status < 500 && cause.status !== 429) {
             await offlineStore.fail(item.id, cause.message)
+            notifyOutbox()
+          } else {
+            await updateItem(item.id, { status: 'queued' })
+          }
+        } else {
+          await updateItem(item.id, { status: 'queued' })
         }
         // Preserve ordering and avoid retry storms while disconnected or rate limited.
         return

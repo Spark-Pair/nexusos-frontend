@@ -2,6 +2,7 @@ import { ApiError } from '@shared/ApiError'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
+import { compressImages } from './media/imageCompression'
 import {
   messagingApi,
   type ConversationDetail,
@@ -39,7 +40,8 @@ function normalizeMessage(message: Message): Message {
     readAt: message.readAt ? asDate(message.readAt) : null,
     replyToMessageId: message.replyToMessageId ?? null,
     replyToBody: message.replyToBody ?? null,
-    replyToSenderId: message.replyToSenderId ?? null
+    replyToSenderId: message.replyToSenderId ?? null,
+    localStatus: message.localStatus
   }
 }
 
@@ -315,15 +317,40 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     const update = () => {
       void synchronize()
     }
+    const updateOutbox = () => {
+      void loadQueue()
+      void offlineStore
+        .queued(actorId)
+        .then((items) => {
+          const statuses = new Map(items.map((item) => [item.id, item.status]))
+          setSelectedState((latest) =>
+            latest
+              ? {
+                  ...latest,
+                  messages: latest.messages.map((message) =>
+                    statuses.has(message.id)
+                      ? { ...message, localStatus: statuses.get(message.id) }
+                      : message.localStatus
+                        ? { ...message, localStatus: undefined }
+                        : message
+                  )
+                }
+              : latest
+          )
+        })
+        .catch(() => undefined)
+    }
     window.addEventListener('online', update)
     window.addEventListener('offline', update)
+    window.addEventListener('nexusos-outbox-updated', updateOutbox)
     return () => {
       alive.current = false
       socket.disconnect()
       window.removeEventListener('online', update)
       window.removeEventListener('offline', update)
+      window.removeEventListener('nexusos-outbox-updated', updateOutbox)
     }
-  }, [actorId, open, refresh, serverConfirmed, synchronize, token])
+  }, [actorId, loadQueue, open, refresh, serverConfirmed, synchronize, token])
   const search = async (query: string) => {
     const version = ++searchId.current
     const result = await messagingApi.search(token, query)
@@ -342,14 +369,15 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     const id = selectedId.current
     if (!id || selected?.conversation.status !== 'accepted')
       throw new Error('Open an accepted conversation first.')
-    const localImageUrls = files.map((file) => URL.createObjectURL(file))
+    const compressedFiles = files.length ? await compressImages(files) : []
+    const localImageUrls = compressedFiles.map((file) => URL.createObjectURL(file))
     const item: QueuedMessage = {
       id: crypto.randomUUID(),
       actorId,
       conversationId: id,
       body,
       imageUrls: [],
-      images: files.map((file) => ({ name: file.name, type: file.type, blob: file })),
+      images: compressedFiles.map((file) => ({ name: file.name, type: file.type, blob: file })),
       replyToMessageId: replyTo?.id ?? null,
       replyToBody: replyTo?.body ?? null,
       replyToSenderId: replyTo?.senderId ?? null,
@@ -375,7 +403,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       createdAt: item.createdAt,
       deliveredAt: null,
       readAt: null,
-      title: ''
+      title: '',
+      localStatus: serverConfirmed && navigator.onLine ? 'sending' : 'queued'
     }
     setSelectedState((current) => {
       if (current?.conversation.id !== id) return current

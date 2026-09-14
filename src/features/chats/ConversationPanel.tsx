@@ -14,6 +14,7 @@ import {
   Clock3,
   Copy,
   Info,
+  LoaderCircle,
   Megaphone,
   Reply,
   Search,
@@ -26,6 +27,23 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } f
 import type { ConversationDetail } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
+
+const outboxLabels: Record<QueuedMessage['status'], string> = {
+  queued: 'Waiting for connection',
+  uploading: 'Uploading photo',
+  sending: 'Sending',
+  failed: 'Not sent'
+}
+
+function outboxIcon(status: QueuedMessage['status']) {
+  return status === 'uploading' || status === 'sending' ? (
+    <LoaderCircle className="size-3 animate-spin" />
+  ) : status === 'failed' ? (
+    <Clock3 className="size-3 text-rose-600" />
+  ) : (
+    <Clock3 className="size-3" />
+  )
+}
 
 function QueuedImagePreview({
   image,
@@ -88,7 +106,7 @@ export function ConversationPanel({
     body: string,
     files?: File[],
     replyTo?: ConversationDetail['messages'][number] | null
-  ) => Promise<'queued' | 'failed' | 'sent'>
+  ) => Promise<'queued' | 'uploading' | 'sending' | 'failed' | 'sent'>
   counterpartTyping: boolean
   onTyping: (active: boolean) => void
   archived: boolean
@@ -438,7 +456,14 @@ export function ConversationPanel({
                       })}
                     </time>
                     {own &&
-                      (message.readAt ? (
+                      (message.localStatus ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400"
+                          aria-label={outboxLabels[message.localStatus]}
+                        >
+                          {outboxIcon(message.localStatus)}
+                        </span>
+                      ) : message.readAt ? (
                         <CheckCheck className="size-3.5 text-blue-600" aria-label="Read" />
                       ) : message.deliveredAt ? (
                         <CheckCheck className="size-3.5" aria-label="Delivered" />
@@ -496,8 +521,8 @@ export function ConversationPanel({
                       : 'text-slate-500 dark:text-slate-400')
                   }
                 >
-                  <Clock3 className="size-3" />
-                  {item.status === 'failed' ? 'Not sent' : 'Queued on this device'}
+                  {outboxIcon(item.status)}
+                  {outboxLabels[item.status]}
                 </p>
                 {item.status === 'failed' && (
                   <>

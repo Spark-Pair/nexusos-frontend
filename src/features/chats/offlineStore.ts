@@ -22,6 +22,13 @@ export interface QueuedAudio {
   type: string
   blob: Blob
 }
+export interface StarredMessage {
+  key: string
+  actorId: string
+  conversationId: string
+  messageId: string
+  createdAt: number
+}
 export interface QueuedMessage {
   id: string
   actorId: string
@@ -42,12 +49,19 @@ class InboxDatabase extends Dexie {
   snapshots!: Table<Snapshot, string>
   identities!: Table<Identity, string>
   outbox!: Table<QueuedMessage, string>
+  starred!: Table<StarredMessage, string>
   constructor() {
     super('nexusos-inbox-v1')
     this.version(1).stores({
       snapshots: 'key,actorId',
       identities: 'id',
       outbox: 'id,actorId,[actorId+conversationId]'
+    })
+    this.version(2).stores({
+      snapshots: 'key,actorId',
+      identities: 'id',
+      outbox: 'id,actorId,[actorId+conversationId]',
+      starred: 'key,actorId,[actorId+conversationId]'
     })
   }
 }
@@ -99,11 +113,25 @@ export const offlineStore = {
   async remove(id: string) {
     await db.outbox.delete(id)
   },
+  async starred(actorId: string, conversationId: string) {
+    return db.starred.where('[actorId+conversationId]').equals([actorId, conversationId]).toArray()
+  },
+  async toggleStar(actorId: string, conversationId: string, messageId: string) {
+    const key = `${actorId}:${conversationId}:${messageId}`
+    const existing = await db.starred.get(key)
+    if (existing) {
+      await db.starred.delete(key)
+      return false
+    }
+    await db.starred.put({ key, actorId, conversationId, messageId, createdAt: Date.now() })
+    return true
+  },
   async purge(actorId: string) {
-    await db.transaction('rw', db.snapshots, db.identities, db.outbox, async () => {
+    await db.transaction('rw', db.snapshots, db.identities, db.outbox, db.starred, async () => {
       await db.snapshots.where('actorId').equals(actorId).delete()
       await db.identities.delete(actorId)
       await db.outbox.where('actorId').equals(actorId).delete()
+      await db.starred.where('actorId').equals(actorId).delete()
     })
   }
 }

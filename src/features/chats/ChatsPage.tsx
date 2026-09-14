@@ -194,6 +194,8 @@ export default function ChatsPage() {
             onReact={messaging.react}
             onEditMessage={messaging.editMessage}
             onDeleteMessage={messaging.deleteMessage}
+            starred={messaging.starred}
+            onToggleStar={messaging.toggleStar}
             offline={!serverConfirmed}
             onReportBroadcast={messaging.reportBroadcast}
           />

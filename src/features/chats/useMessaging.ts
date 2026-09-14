@@ -129,6 +129,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState<string>()
   const [queued, setQueued] = useState<QueuedMessage[]>([])
+  const [starred, setStarred] = useState<Record<string, true>>({})
   const [counterpartTyping, setCounterpartTyping] = useState(false)
   const socketRef = useRef<Socket | undefined>(undefined)
   const selectedId = useRef<string | undefined>(undefined)
@@ -136,6 +137,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
   const alive = useRef(true)
   const setSelected = useCallback((value: ConversationDetail | undefined) => {
     selectedId.current = value?.conversation.id
+    if (!value) setStarred({})
     setSelectedState(value)
   }, [])
   const loadQueue = useCallback(async () => {
@@ -177,6 +179,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       selectedId.current = id
       setOpening(true)
       setCounterpartTyping(false)
+      const savedStars = await offlineStore.starred(actorId, id).catch(() => [])
+      if (alive.current && selectedId.current === id)
+        setStarred(Object.fromEntries(savedStars.map((item) => [item.messageId, true])))
       try {
         const cached = await offlineStore
           .read<ConversationDetail>(actorId, id)
@@ -453,6 +458,17 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     await offlineStore.remove(id)
     await loadQueue()
   }
+  const toggleStar = async (messageId: string) => {
+    const conversationId = selectedId.current
+    if (!conversationId) return
+    const enabled = await offlineStore.toggleStar(actorId, conversationId, messageId)
+    setStarred((current) => {
+      const next = { ...current }
+      if (enabled) next[messageId] = true
+      else delete next[messageId]
+      return next
+    })
+  }
   const setTyping = (active: boolean) => {
     if (selectedId.current && serverConfirmed)
       socketRef.current?.emit('conversation:typing', { conversationId: selectedId.current, active })
@@ -535,6 +551,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     respond,
     send,
     queued,
+    starred,
+    toggleStar,
     retry,
     discard,
     react,

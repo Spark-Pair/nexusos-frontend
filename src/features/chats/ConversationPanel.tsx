@@ -19,6 +19,7 @@ import {
   Pencil,
   Reply,
   Search,
+  Star,
   Volume2,
   VolumeX,
   X,
@@ -111,6 +112,8 @@ export function ConversationPanel({
   onReact,
   onEditMessage,
   onDeleteMessage,
+  starred,
+  onToggleStar,
   offline,
   onReportBroadcast
 }: {
@@ -135,12 +138,15 @@ export function ConversationPanel({
   onReact: (messageId: string, emoji: string | null) => Promise<void>
   onEditMessage: (messageId: string, body: string) => Promise<void>
   onDeleteMessage: (messageId: string) => Promise<void>
+  starred: Record<string, true>
+  onToggleStar: (messageId: string) => Promise<void>
   offline: boolean
   onReportBroadcast: (id: string) => Promise<void>
 }) {
   const toast = useToast()
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
+  const [starredOnly, setStarredOnly] = useState(false)
   const [info, setInfo] = useState(false)
   const [image, setImage] = useState<string>()
   const [report, setReport] = useState<string>()
@@ -240,9 +246,12 @@ export function ConversationPanel({
     detail.conversation.status === 'pending' &&
     detail.conversation.customerId === currentUserId &&
     detail.conversation.invitedBy !== currentUserId
-  const visible = detail.messages.filter((message) =>
-    (message.title + ' ' + message.body).toLowerCase().includes(query.toLowerCase())
-  )
+  const normalizedQuery = query.trim().toLowerCase()
+  const visible = detail.messages.filter((message) => {
+    if (starredOnly && !starred[message.id]) return false
+    if (!normalizedQuery) return true
+    return (message.title + ' ' + message.body).toLowerCase().includes(normalizedQuery)
+  })
   const unsent = queued.filter((item) => !detail.messages.some((message) => message.id === item.id))
   return (
     <section
@@ -335,6 +344,20 @@ export function ConversationPanel({
               onChange={setQuery}
             />
           </div>
+          <button
+            type="button"
+            className={
+              'inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] border px-3 text-sm font-medium transition active:scale-95 ' +
+              (starredOnly
+                ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-200'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800')
+            }
+            aria-pressed={starredOnly}
+            onClick={() => setStarredOnly((value) => !value)}
+          >
+            <Star className={'size-4 ' + (starredOnly ? 'fill-current' : '')} />
+            Starred
+          </button>
           <IconButton
             label="Close search"
             icon={<X className="size-4" />}
@@ -342,6 +365,7 @@ export function ConversationPanel({
             onClick={() => {
               setSearching(false)
               setQuery('')
+              setStarredOnly(false)
             }}
           />
         </div>
@@ -374,9 +398,11 @@ export function ConversationPanel({
         <div className="mx-auto flex max-w-3xl flex-col gap-2">
           {!visible.length && (
             <p className="py-10 text-center text-sm text-slate-500">
-              {query
-                ? 'No matching messages in this conversation.'
-                : 'This is the start of your conversation.'}
+              {starredOnly
+                ? 'No starred messages in this conversation.'
+                : query
+                  ? 'No matching messages in this conversation.'
+                  : 'This is the start of your conversation.'}
             </p>
           )}
           {visible.map((message, index) => {
@@ -423,6 +449,26 @@ export function ConversationPanel({
                           size="sm"
                           variant="quiet"
                           onClick={() => void copyMessage(message.body)}
+                        />
+                        <IconButton
+                          label={starred[message.id] ? 'Unstar message' : 'Star message'}
+                          icon={
+                            <Star
+                              className={
+                                'size-3.5 ' +
+                                (starred[message.id] ? 'fill-amber-400 text-amber-500' : '')
+                              }
+                            />
+                          }
+                          size="sm"
+                          variant="quiet"
+                          onClick={() =>
+                            void run(
+                              `star:${message.id}`,
+                              () => onToggleStar(message.id),
+                              starred[message.id] ? 'Removed from starred' : 'Added to starred'
+                            )
+                          }
                         />
                         <IconButton
                           label="Reply to message"
@@ -553,6 +599,12 @@ export function ConversationPanel({
                     </div>
                   ) : null}
                   <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                    {starred[message.id] && (
+                      <Star
+                        className="mr-auto size-3 fill-amber-400 text-amber-500"
+                        aria-label="Starred"
+                      />
+                    )}
                     {message.broadcastId && !own && (
                       <button
                         type="button"

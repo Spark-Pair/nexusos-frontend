@@ -1,4 +1,4 @@
-import { ActionMenu } from '@shared/components/ActionMenu'
+import { ActionMenu, type ActionMenuItem } from '@shared/components/ActionMenu'
 import { Button } from '@shared/components/Button'
 import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
@@ -157,10 +157,12 @@ export function ConversationPanel({
   const [busy, setBusy] = useState('')
   const [scrolledUp, setScrolledUp] = useState(false)
   const [newMessages, setNewMessages] = useState(0)
+  const [activeMessageMenu, setActiveMessageMenu] = useState<string>()
   const pending = useRef(false)
   const scroll = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
   const lastSeenLatest = useRef<string | undefined>(detail.messages.at(-1)?.id)
+  const longPress = useRef<number | undefined>(undefined)
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     const node = scroll.current
     if (!node) return
@@ -182,6 +184,19 @@ export function ConversationPanel({
     const frame = window.requestAnimationFrame(() => scrollToBottom())
     return () => window.cancelAnimationFrame(frame)
   }, [detail.conversation.id, scrollToBottom])
+  useEffect(() => {
+    if (!activeMessageMenu) return
+    const close = () => setActiveMessageMenu(undefined)
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close()
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [activeMessageMenu])
   useLayoutEffect(() => {
     if (!latest || latest === lastSeenLatest.current) return
     if (stickToBottom.current) {
@@ -233,6 +248,41 @@ export function ConversationPanel({
     if (body) return body
     if (message.audioUrl) return 'Voice message'
     return message.imageUrls.length ? `${message.imageUrls.length} photo attachment` : 'Message'
+  }
+  const clearLongPress = () => {
+    window.clearTimeout(longPress.current)
+    longPress.current = undefined
+  }
+  const menuItems = (message: ConversationDetail['messages'][number], own: boolean) =>
+    [
+      { id: 'reply', label: 'Reply', icon: Reply },
+      { id: 'copy', label: 'Copy', icon: Copy, disabled: !message.body.trim() },
+      { id: 'star', label: starred[message.id] ? 'Unstar' : 'Star', icon: Star },
+      ...(own && message.body.trim() && !message.imageUrls.length && !message.audioUrl
+        ? [{ id: 'edit', label: 'Edit', icon: Pencil }]
+        : []),
+      ...(own ? [{ id: 'delete', label: 'Delete', icon: Trash2, tone: 'danger' as const }] : [])
+    ] satisfies ActionMenuItem[]
+  const handleMessageAction = (
+    message: ConversationDetail['messages'][number],
+    id: string,
+    close = false
+  ) => {
+    if (close) setActiveMessageMenu(undefined)
+    if (id === 'reply') setReplyTo(message)
+    if (id === 'copy') void copyMessage(message.body)
+    if (id === 'star')
+      void run(
+        `star:${message.id}`,
+        () => onToggleStar(message.id),
+        starred[message.id] ? 'Removed from starred' : 'Added to starred'
+      )
+    if (id === 'edit') {
+      setEditing(message)
+      setEditBody(message.body)
+    }
+    if (id === 'delete')
+      void run(`delete:${message.id}`, () => onDeleteMessage(message.id), 'Message deleted')
   }
   const toggleReaction = (message: ConversationDetail['messages'][number], emoji: string) => {
     const alreadyMine = (message.reactions?.[emoji] ?? []).includes(currentUserId)
@@ -427,6 +477,21 @@ export function ConversationPanel({
                     'message-bubble group relative ' +
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
+                  onContextMenu={(event) => {
+                    if (message.deletedAt) return
+                    event.preventDefault()
+                    setActiveMessageMenu(message.id)
+                  }}
+                  onPointerDown={(event) => {
+                    if (message.deletedAt || event.pointerType === 'mouse') return
+                    clearLongPress()
+                    longPress.current = window.setTimeout(() => {
+                      setActiveMessageMenu(message.id)
+                    }, 450)
+                  }}
+                  onPointerUp={clearLongPress}
+                  onPointerLeave={clearLongPress}
+                  onPointerCancel={clearLongPress}
                 >
                   {!message.deletedAt &&
                     (message.body.trim() || message.imageUrls.length || message.audioUrl) && (
@@ -445,59 +510,37 @@ export function ConversationPanel({
                         ))}
                         <ActionMenu
                           label="Message actions"
-                          items={[
-                            { id: 'reply', label: 'Reply', icon: Reply },
-                            {
-                              id: 'copy',
-                              label: 'Copy',
-                              icon: Copy,
-                              disabled: !message.body.trim()
-                            },
-                            {
-                              id: 'star',
-                              label: starred[message.id] ? 'Unstar' : 'Star',
-                              icon: Star
-                            },
-                            ...(own &&
-                            message.body.trim() &&
-                            !message.imageUrls.length &&
-                            !message.audioUrl
-                              ? [{ id: 'edit', label: 'Edit', icon: Pencil }]
-                              : []),
-                            ...(own
-                              ? [
-                                  {
-                                    id: 'delete',
-                                    label: 'Delete',
-                                    icon: Trash2,
-                                    tone: 'danger' as const
-                                  }
-                                ]
-                              : [])
-                          ]}
-                          onAction={(id) => {
-                            if (id === 'reply') setReplyTo(message)
-                            if (id === 'copy') void copyMessage(message.body)
-                            if (id === 'star')
-                              void run(
-                                `star:${message.id}`,
-                                () => onToggleStar(message.id),
-                                starred[message.id] ? 'Removed from starred' : 'Added to starred'
-                              )
-                            if (id === 'edit') {
-                              setEditing(message)
-                              setEditBody(message.body)
-                            }
-                            if (id === 'delete')
-                              void run(
-                                `delete:${message.id}`,
-                                () => onDeleteMessage(message.id),
-                                'Message deleted'
-                              )
-                          }}
+                          items={menuItems(message, own)}
+                          onAction={(id) => handleMessageAction(message, id)}
                         />
                       </div>
                     )}
+                  {activeMessageMenu === message.id && !message.deletedAt ? (
+                    <div
+                      role="menu"
+                      className="action-menu z-30"
+                      style={{ top: '2.5rem', right: own ? 0 : 'auto', left: own ? 'auto' : 0 }}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {menuItems(message, own).map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="menuitem"
+                            disabled={item.disabled}
+                            className={`action-menu-item ${item.tone === 'danger' ? 'text-rose-600 dark:text-rose-300' : ''}`}
+                            onClick={() => handleMessageAction(message, item.id, true)}
+                          >
+                            <Icon className="size-4" aria-hidden="true" />
+                            {item.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
                   {!message.deletedAt && message.replyToMessageId && (
                     <button
                       type="button"

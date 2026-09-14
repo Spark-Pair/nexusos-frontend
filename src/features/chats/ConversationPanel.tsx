@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   Check,
   CheckCheck,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Copy,
   Forward,
@@ -28,7 +30,7 @@ import {
   Trash2,
   ArrowDown
 } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ConversationDetail, ConversationSummary } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
@@ -48,6 +50,32 @@ function outboxIcon(status: QueuedMessage['status']) {
     <Clock3 className="size-3 text-rose-600" />
   ) : (
     <Clock3 className="size-3" />
+  )
+}
+
+function escapeSearchPattern(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
+function HighlightedMessageText({ text, query }: { text: string; query: string }) {
+  const needle = query.trim()
+  if (!needle) return <>{text}</>
+  const parts = text.split(new RegExp(`(${escapeSearchPattern(needle)})`, 'giu'))
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.toLowerCase() === needle.toLowerCase() ? (
+          <mark
+            key={index}
+            className="rounded bg-amber-200/80 px-0.5 text-inherit dark:bg-amber-400/40"
+          >
+            {part}
+          </mark>
+        ) : (
+          <Fragment key={index}>{part}</Fragment>
+        )
+      )}
+    </>
   )
 }
 
@@ -158,6 +186,7 @@ export function ConversationPanel({
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
   const [starredOnly, setStarredOnly] = useState(false)
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0)
   const [info, setInfo] = useState(false)
   const [image, setImage] = useState<string>()
   const [report, setReport] = useState<string>()
@@ -361,11 +390,43 @@ export function ConversationPanel({
     detail.conversation.customerId === currentUserId &&
     detail.conversation.invitedBy !== currentUserId
   const normalizedQuery = query.trim().toLowerCase()
+  const matchingMessageIds = useMemo(
+    () =>
+      normalizedQuery
+        ? detail.messages
+            .filter((message) =>
+              (message.title + ' ' + message.body).toLowerCase().includes(normalizedQuery)
+            )
+            .map((message) => message.id)
+        : [],
+    [detail.messages, normalizedQuery]
+  )
+  const activeSearchMessageId = matchingMessageIds[activeSearchIndex]
   const visible = detail.messages.filter((message) => {
     if (starredOnly && !starred[message.id]) return false
     if (!normalizedQuery) return true
-    return (message.title + ' ' + message.body).toLowerCase().includes(normalizedQuery)
+    return matchingMessageIds.includes(message.id)
   })
+  useEffect(() => {
+    setActiveSearchIndex(0)
+  }, [normalizedQuery, detail.conversation.id])
+  useEffect(() => {
+    if (!matchingMessageIds.length) return
+    const index = Math.min(activeSearchIndex, matchingMessageIds.length - 1)
+    if (index !== activeSearchIndex) {
+      setActiveSearchIndex(index)
+      return
+    }
+    document
+      .getElementById(`message-${matchingMessageIds[index]}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeSearchIndex, matchingMessageIds])
+  const goToSearchResult = (direction: 1 | -1) => {
+    if (!matchingMessageIds.length) return
+    setActiveSearchIndex(
+      (current) => (current + direction + matchingMessageIds.length) % matchingMessageIds.length
+    )
+  }
   const unsent = queued.filter((item) => !detail.messages.some((message) => message.id === item.id))
   return (
     <section
@@ -489,6 +550,31 @@ export function ConversationPanel({
             <Star className={'size-4 ' + (starredOnly ? 'fill-current' : '')} />
             Starred
           </button>
+          {normalizedQuery ? (
+            <div className="hidden items-center gap-1 rounded-[var(--radius-control)] border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 sm:flex">
+              <span>
+                {matchingMessageIds.length
+                  ? `${activeSearchIndex + 1}/${matchingMessageIds.length}`
+                  : '0/0'}
+              </span>
+              <IconButton
+                label="Previous search result"
+                icon={<ChevronUp className="size-4" />}
+                size="sm"
+                variant="quiet"
+                disabled={!matchingMessageIds.length}
+                onClick={() => goToSearchResult(-1)}
+              />
+              <IconButton
+                label="Next search result"
+                icon={<ChevronDown className="size-4" />}
+                size="sm"
+                variant="quiet"
+                disabled={!matchingMessageIds.length}
+                onClick={() => goToSearchResult(1)}
+              />
+            </div>
+          ) : null}
           <IconButton
             label="Close search"
             icon={<X className="size-4" />}
@@ -497,6 +583,7 @@ export function ConversationPanel({
               setSearching(false)
               setQuery('')
               setStarredOnly(false)
+              setActiveSearchIndex(0)
             }}
           />
         </div>
@@ -609,7 +696,10 @@ export function ConversationPanel({
                   id={`message-${message.id}`}
                   className={
                     'message-bubble group relative ' +
-                    (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
+                    (own ? 'message-bubble-outgoing' : 'message-bubble-incoming') +
+                    (message.id === activeSearchMessageId
+                      ? ' ring-2 ring-amber-300 ring-offset-2 ring-offset-transparent'
+                      : '')
                   }
                   aria-selected={!!selectedMessages[message.id]}
                   onClick={() => {
@@ -773,7 +863,7 @@ export function ConversationPanel({
                   )}
                   {!message.deletedAt && message.body.trim() ? (
                     <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                      {message.body}
+                      <HighlightedMessageText text={message.body} query={query} />
                       {message.editedAt ? (
                         <span className="ml-1 text-[10px] text-slate-500">(edited)</span>
                       ) : null}

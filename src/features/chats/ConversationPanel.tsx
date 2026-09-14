@@ -169,6 +169,7 @@ export function ConversationPanel({
   const [busy, setBusy] = useState('')
   const [scrolledUp, setScrolledUp] = useState(false)
   const [newMessages, setNewMessages] = useState(0)
+  const [newMessageStartId, setNewMessageStartId] = useState<string>()
   const [activeMessageMenu, setActiveMessageMenu] = useState<string>()
   const [selectedMessages, setSelectedMessages] = useState<Record<string, true>>({})
   const pending = useRef(false)
@@ -182,6 +183,7 @@ export function ConversationPanel({
     node.scrollTo({ top: node.scrollHeight, behavior })
     setScrolledUp(false)
     setNewMessages(0)
+    setNewMessageStartId(undefined)
   }, [])
   const closeInfo = useCallback(() => setInfo(false), [])
   const closeImage = useCallback(() => setImage(undefined), [])
@@ -195,6 +197,7 @@ export function ConversationPanel({
   useLayoutEffect(() => {
     stickToBottom.current = true
     setNewMessages(0)
+    setNewMessageStartId(undefined)
     lastSeenLatest.current = undefined
     scrollToBottom()
     const frame = window.requestAnimationFrame(() => scrollToBottom())
@@ -222,6 +225,7 @@ export function ConversationPanel({
     }
     lastSeenLatest.current = latest
     setNewMessages((count) => count + 1)
+    setNewMessageStartId((current) => current ?? latest)
   }, [latest, scrollToBottom])
   useLayoutEffect(() => {
     if (stickToBottom.current) scrollToBottom()
@@ -559,7 +563,10 @@ export function ConversationPanel({
           if (node) {
             stickToBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 100
             setScrolledUp(!stickToBottom.current)
-            if (stickToBottom.current) setNewMessages(0)
+            if (stickToBottom.current) {
+              setNewMessages(0)
+              setNewMessageStartId(undefined)
+            }
           }
         }}
       >
@@ -589,6 +596,15 @@ export function ConversationPanel({
                         })}
                   </div>
                 )}
+                {message.id === newMessageStartId && !query && !starredOnly ? (
+                  <div className="my-3 flex items-center gap-3" role="status">
+                    <span className="h-px flex-1 bg-emerald-200 dark:bg-emerald-900" />
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-[var(--color-primary)] dark:border-emerald-900 dark:bg-emerald-950/50">
+                      New messages
+                    </span>
+                    <span className="h-px flex-1 bg-emerald-200 dark:bg-emerald-900" />
+                  </div>
+                ) : null}
                 <article
                   id={`message-${message.id}`}
                   className={

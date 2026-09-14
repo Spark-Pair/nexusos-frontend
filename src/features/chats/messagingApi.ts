@@ -18,6 +18,7 @@ const messageSchema = z.object({
   readAt: z.coerce.date().nullable(),
   editedAt: z.coerce.date().nullable().optional(),
   deletedAt: z.coerce.date().nullable().optional(),
+  forwardedAt: z.coerce.date().nullable().optional(),
   broadcastId: z.string().uuid().nullable().optional(),
   title: z.string().default(''),
   imageUrls: z.array(z.string()).default([]),
@@ -145,7 +146,8 @@ export const messagingApi = {
     clientId?: string,
     imageUrls: string[] = [],
     audioUrl?: string | null,
-    replyToMessageId?: string | null
+    replyToMessageId?: string | null,
+    forwarded = false
   ) =>
     z.object({ data: messageSchema }).parse(
       await call(`/conversations/${id}/messages`, token, {
@@ -155,6 +157,7 @@ export const messagingApi = {
           image_urls: imageUrls,
           ...(audioUrl ? { audio_url: audioUrl } : {}),
           ...(replyToMessageId ? { reply_to_message_id: replyToMessageId } : {}),
+          ...(forwarded ? { forwarded: true } : {}),
           ...(clientId ? { client_id: clientId } : {})
         })
       })

@@ -40,6 +40,7 @@ function normalizeMessage(message: Message): Message {
     readAt: message.readAt ? asDate(message.readAt) : null,
     editedAt: message.editedAt ? asDate(message.editedAt) : null,
     deletedAt: message.deletedAt ? asDate(message.deletedAt) : null,
+    forwardedAt: message.forwardedAt ? asDate(message.forwardedAt) : null,
     replyToMessageId: message.replyToMessageId ?? null,
     replyToBody: message.replyToBody ?? null,
     replyToSenderId: message.replyToSenderId ?? null,
@@ -525,7 +526,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         message.body,
         undefined,
         message.imageUrls,
-        message.audioUrl ?? null
+        message.audioUrl ?? null,
+        null,
+        true
       )
     }
     await refresh()

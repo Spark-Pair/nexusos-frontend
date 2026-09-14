@@ -693,6 +693,12 @@ export function ConversationPanel({
                       This message was deleted
                     </p>
                   ) : null}
+                  {!message.deletedAt && message.forwardedAt && !message.broadcastId && (
+                    <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      <Forward className="size-3" />
+                      Forwarded
+                    </p>
+                  )}
                   {!message.deletedAt && message.broadcastId && (
                     <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
                       <Megaphone className="size-3" />

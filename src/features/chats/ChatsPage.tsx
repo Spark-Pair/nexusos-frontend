@@ -48,6 +48,7 @@ export default function ChatsPage() {
         ).format(item.updatedAt),
         unreadCount: item.unreadCount,
         pinned: item.pinned,
+        muted: item.muted,
         category: item.archived ? 'archived' : item.unreadCount ? 'unread' : 'all'
       })),
     [messaging.conversations]
@@ -156,6 +157,17 @@ export default function ChatsPage() {
           onActiveTabChange={() => undefined}
           onFilterChange={setFilter}
           onOpenConversation={(chat) => void navigate('/app/chats/' + chat.id)}
+          onQuickAction={(chat, action) => {
+            const conversation = messaging.conversations.find((item) => item.id === chat.id)
+            if (!conversation) return
+            const state =
+              action === 'pin'
+                ? { pinned: !conversation.pinned }
+                : action === 'mute'
+                  ? { muted: !conversation.muted }
+                  : { archived: !conversation.archived }
+            void messaging.setConversationStateFor(chat.id, state)
+          }}
           onQueryChange={setQuery}
           status={
             messaging.loading ? (

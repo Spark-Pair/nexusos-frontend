@@ -548,16 +548,22 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         : current
     )
   }
+  const setConversationStateFor = async (
+    conversationId: string,
+    state: { archived?: boolean; muted?: boolean; pinned?: boolean }
+  ) => {
+    if (!serverConfirmed || !navigator.onLine)
+      throw new Error('Connect to the internet to change conversation settings.')
+    await messagingApi.state(token, conversationId, state)
+    await refresh()
+  }
   const setConversationState = async (state: {
     archived?: boolean
     muted?: boolean
     pinned?: boolean
   }) => {
     if (!selectedId.current) return
-    if (!serverConfirmed || !navigator.onLine)
-      throw new Error('Connect to the internet to change conversation settings.')
-    await messagingApi.state(token, selectedId.current, state)
-    await refresh()
+    await setConversationStateFor(selectedId.current, state)
   }
   const reportBroadcast = async (id: string) => {
     if (!serverConfirmed || !navigator.onLine)
@@ -590,6 +596,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     counterpartTyping,
     setTyping,
     setConversationState,
+    setConversationStateFor,
     reportBroadcast
   }
 }

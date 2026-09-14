@@ -1,4 +1,4 @@
-import { BadgeCheck, Pin } from 'lucide-react'
+import { Archive, ArchiveRestore, BadgeCheck, Bell, BellOff, Pin, PinOff } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
@@ -15,6 +15,7 @@ export interface ChatPreview {
   unreadCount: number
   verified?: boolean
   pinned?: boolean
+  muted?: boolean
   category: ChatFilter
 }
 
@@ -26,6 +27,7 @@ export function ChatListScreen({
   onCompose,
   onFilterChange,
   onOpenConversation,
+  onQuickAction,
   onQueryChange,
   query,
   headerActions,
@@ -45,6 +47,7 @@ export function ChatListScreen({
   onCompose?: () => void
   onFilterChange: (filter: ChatFilter) => void
   onOpenConversation: (chat: ChatPreview) => void
+  onQuickAction?: (chat: ChatPreview, action: 'pin' | 'archive' | 'mute') => void
   onQueryChange: (query: string) => void
   headerActions?: ReactNode
   status?: ReactNode
@@ -111,58 +114,105 @@ export function ChatListScreen({
       )}
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
         {visible.length ? (
-          visible.map((chat) => (
-            <button
-              key={chat.id}
-              type="button"
-              onClick={() => onOpenConversation(chat)}
-              aria-current={selectedId === chat.id ? 'true' : undefined}
-              className={`chat-list-item group ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
-            >
-              <span
-                className={
-                  selectedId === chat.id
-                    ? 'rounded-[1.15rem] ring-2 ring-emerald-500/20'
-                    : 'rounded-[1.15rem]'
-                }
+          visible.map((chat) => {
+            const quickActions = [
+              {
+                id: 'pin' as const,
+                label: chat.pinned ? 'Unpin chat' : 'Pin chat',
+                icon: chat.pinned ? PinOff : Pin
+              },
+              {
+                id: 'mute' as const,
+                label: chat.muted ? 'Unmute notifications' : 'Mute notifications',
+                icon: chat.muted ? Bell : BellOff
+              },
+              {
+                id: 'archive' as const,
+                label: chat.category === 'archived' ? 'Unarchive chat' : 'Archive chat',
+                icon: chat.category === 'archived' ? ArchiveRestore : Archive
+              }
+            ]
+            return (
+              <div
+                key={chat.id}
+                aria-current={selectedId === chat.id ? 'true' : undefined}
+                className={`chat-list-item group ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
               >
-                <Avatar label={chat.name} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
-                    {chat.name}
-                  </span>
-                  {chat.pinned ? (
-                    <Pin aria-label="Pinned" className="size-3.5 fill-slate-400 text-slate-400" />
-                  ) : null}
-                  {chat.verified ? (
-                    <BadgeCheck
-                      aria-label="Verified"
-                      className="size-4 fill-blue-600 text-white dark:text-slate-950"
-                    />
-                  ) : null}
-                </span>
-                <span
-                  className={`mt-1 block truncate text-xs ${chat.unreadCount ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  onClick={() => onOpenConversation(chat)}
                 >
-                  {chat.message}
-                </span>
-              </span>
-              <span className="flex shrink-0 flex-col items-end gap-2">
-                <span
-                  className={`text-[10px] ${chat.unreadCount ? 'font-bold text-blue-600' : 'text-slate-400'}`}
-                >
-                  {chat.time}
-                </span>
-                {chat.unreadCount ? (
-                  <span className="grid min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                  <span
+                    className={
+                      selectedId === chat.id
+                        ? 'rounded-[1.15rem] ring-2 ring-emerald-500/20'
+                        : 'rounded-[1.15rem]'
+                    }
+                  >
+                    <Avatar label={chat.name} />
                   </span>
-                ) : null}
-              </span>
-            </button>
-          ))
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
+                        {chat.name}
+                      </span>
+                      {chat.pinned ? (
+                        <Pin
+                          aria-label="Pinned"
+                          className="size-3.5 fill-slate-400 text-slate-400"
+                        />
+                      ) : null}
+                      {chat.verified ? (
+                        <BadgeCheck
+                          aria-label="Verified"
+                          className="size-4 fill-blue-600 text-white dark:text-slate-950"
+                        />
+                      ) : null}
+                    </span>
+                    <span
+                      className={`mt-1 block truncate text-xs ${chat.unreadCount ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}
+                    >
+                      {chat.message}
+                    </span>
+                  </span>
+                </button>
+                <span className="flex shrink-0 items-center gap-1">
+                  <span className="flex min-w-11 flex-col items-end gap-2">
+                    <span
+                      className={`text-[10px] ${chat.unreadCount ? 'font-bold text-blue-600' : 'text-slate-400'}`}
+                    >
+                      {chat.time}
+                    </span>
+                    {chat.unreadCount ? (
+                      <span className="grid min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                      </span>
+                    ) : null}
+                  </span>
+                  {onQuickAction ? (
+                    <span className="hidden rounded-full bg-white/90 p-1 shadow-sm ring-1 ring-slate-200 transition group-hover:flex group-focus-within:flex dark:bg-slate-900/90 dark:ring-slate-700 sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                      {quickActions.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            aria-label={item.label}
+                            title={item.label}
+                            className="grid size-8 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[var(--color-primary)] active:scale-95 dark:text-slate-400 dark:hover:bg-slate-800"
+                            onClick={() => onQuickAction(chat, item.id)}
+                          >
+                            <Icon className="size-4" />
+                          </button>
+                        )
+                      })}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            )
+          })
         ) : (
           <div className="grid min-h-56 place-items-center px-8 text-center">
             <div>

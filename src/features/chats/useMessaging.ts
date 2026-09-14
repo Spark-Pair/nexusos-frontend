@@ -36,7 +36,10 @@ function normalizeMessage(message: Message): Message {
     ...message,
     createdAt: asDate(message.createdAt),
     deliveredAt: message.deliveredAt ? asDate(message.deliveredAt) : null,
-    readAt: message.readAt ? asDate(message.readAt) : null
+    readAt: message.readAt ? asDate(message.readAt) : null,
+    replyToMessageId: message.replyToMessageId ?? null,
+    replyToBody: message.replyToBody ?? null,
+    replyToSenderId: message.replyToSenderId ?? null
   }
 }
 
@@ -335,7 +338,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     await messagingApi.respond(token, selectedId.current, decision)
     await synchronize()
   }
-  const send = async (body: string, files: File[] = []) => {
+  const send = async (body: string, files: File[] = [], replyTo?: Message | null) => {
     const id = selectedId.current
     if (!id || selected?.conversation.status !== 'accepted')
       throw new Error('Open an accepted conversation first.')
@@ -347,6 +350,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       body,
       imageUrls: [],
       images: files.map((file) => ({ name: file.name, type: file.type, blob: file })),
+      replyToMessageId: replyTo?.id ?? null,
+      replyToBody: replyTo?.body ?? null,
+      replyToSenderId: replyTo?.senderId ?? null,
       createdAt: new Date(),
       status: 'queued'
     }
@@ -363,6 +369,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       senderId: actorId,
       body,
       imageUrls: localImageUrls,
+      replyToMessageId: replyTo?.id ?? null,
+      replyToBody: replyTo?.body ?? null,
+      replyToSenderId: replyTo?.senderId ?? null,
       createdAt: item.createdAt,
       deliveredAt: null,
       readAt: null,

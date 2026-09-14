@@ -24,6 +24,9 @@ export interface QueuedMessage {
   body: string
   imageUrls?: string[]
   images?: QueuedImage[]
+  replyToMessageId?: string | null
+  replyToBody?: string | null
+  replyToSenderId?: string | null
   createdAt: Date
   status: 'queued' | 'failed'
   error?: string

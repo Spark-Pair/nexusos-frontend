@@ -1,4 +1,4 @@
-﻿import { ActionMenu } from '@shared/components/ActionMenu'
+import { ActionMenu } from '@shared/components/ActionMenu'
 import { Button } from '@shared/components/Button'
 import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
@@ -15,6 +15,7 @@ import {
   Copy,
   Info,
   Megaphone,
+  Reply,
   Search,
   Volume2,
   VolumeX,
@@ -83,7 +84,11 @@ export function ConversationPanel({
   currentUserId: string
   onBack: () => void
   onRespond: (decision: 'accepted' | 'rejected') => Promise<void>
-  onSend: (body: string, files?: File[]) => Promise<'queued' | 'failed' | 'sent'>
+  onSend: (
+    body: string,
+    files?: File[],
+    replyTo?: ConversationDetail['messages'][number] | null
+  ) => Promise<'queued' | 'failed' | 'sent'>
   counterpartTyping: boolean
   onTyping: (active: boolean) => void
   archived: boolean
@@ -101,6 +106,7 @@ export function ConversationPanel({
   const [info, setInfo] = useState(false)
   const [image, setImage] = useState<string>()
   const [report, setReport] = useState<string>()
+  const [replyTo, setReplyTo] = useState<ConversationDetail['messages'][number] | null>(null)
   const [reported, setReported] = useState<string[]>([])
   const [busy, setBusy] = useState('')
   const [scrolledUp, setScrolledUp] = useState(false)
@@ -173,6 +179,13 @@ export function ConversationPanel({
         tone: 'danger'
       })
     }
+  }
+  const replyLabel = (
+    message: Pick<ConversationDetail['messages'][number], 'body' | 'imageUrls'>
+  ) => {
+    const body = message.body.trim()
+    if (body) return body
+    return message.imageUrls.length ? `${message.imageUrls.length} photo attachment` : 'Message'
   }
   const pendingForCustomer =
     detail.conversation.status === 'pending' &&
@@ -334,12 +347,13 @@ export function ConversationPanel({
                   </div>
                 )}
                 <article
+                  id={`message-${message.id}`}
                   className={
                     'message-bubble group relative ' +
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
                 >
-                  {message.body.trim() && (
+                  {(message.body.trim() || message.imageUrls.length) && (
                     <div className="absolute -top-3 right-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                       <IconButton
                         label="Copy message"
@@ -348,7 +362,34 @@ export function ConversationPanel({
                         variant="quiet"
                         onClick={() => void copyMessage(message.body)}
                       />
+                      <IconButton
+                        label="Reply to message"
+                        icon={<Reply className="size-3.5" />}
+                        size="sm"
+                        variant="quiet"
+                        onClick={() => setReplyTo(message)}
+                      />
                     </div>
+                  )}
+                  {message.replyToMessageId && (
+                    <button
+                      type="button"
+                      className="mb-2 w-full rounded-xl border-l-4 border-[var(--color-primary)] bg-white/70 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-950/50 dark:text-slate-300"
+                      onClick={() =>
+                        document
+                          .getElementById(`message-${message.replyToMessageId}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
+                    >
+                      <span className="block font-semibold text-[var(--color-primary)]">
+                        {message.replyToSenderId === currentUserId
+                          ? 'You'
+                          : detail.counterpart.name}
+                      </span>
+                      <span className="line-clamp-2">
+                        {message.replyToBody?.trim() ? message.replyToBody.trim() : 'Attachment'}
+                      </span>
+                    </button>
                   )}
                   {message.broadcastId && (
                     <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
@@ -536,11 +577,32 @@ export function ConversationPanel({
       ) : detail.conversation.status === 'accepted' ? (
         <footer className="px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 sm:pb-3">
           <div className="mx-auto max-w-3xl">
+            {replyTo && (
+              <div className="mb-2 flex items-start gap-3 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/90">
+                <div className="min-w-0 flex-1 border-l-4 border-[var(--color-primary)] pl-3">
+                  <p className="text-xs font-semibold text-[var(--color-primary)]">
+                    Replying to{' '}
+                    {replyTo.senderId === currentUserId ? 'your message' : detail.counterpart.name}
+                  </p>
+                  <p className="truncate text-xs text-slate-600 dark:text-slate-300">
+                    {replyLabel(replyTo)}
+                  </p>
+                </div>
+                <IconButton
+                  label="Cancel reply"
+                  icon={<X className="size-4" />}
+                  size="sm"
+                  variant="quiet"
+                  onClick={() => setReplyTo(null)}
+                />
+              </div>
+            )}
             <MessageComposer
               onSubmit={async (body, files) => {
                 stickToBottom.current = true
                 try {
-                  const result = await onSend(body, files)
+                  const result = await onSend(body, files, replyTo)
+                  setReplyTo(null)
                   if (result === 'failed')
                     toast({
                       title: 'Message not sent',

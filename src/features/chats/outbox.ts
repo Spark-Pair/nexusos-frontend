@@ -19,7 +19,14 @@ export function syncOutbox(actorId: string, token: string) {
           )
           await offlineStore.update(item.id, { imageUrls })
         }
-        await messagingApi.send(token, item.conversationId, item.body, item.id, imageUrls)
+        await messagingApi.send(
+          token,
+          item.conversationId,
+          item.body,
+          item.id,
+          imageUrls,
+          item.replyToMessageId
+        )
         await offlineStore.remove(item.id)
       } catch (cause) {
         if (cause instanceof ApiError) {

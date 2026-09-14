@@ -18,7 +18,10 @@ const messageSchema = z.object({
   readAt: z.coerce.date().nullable(),
   broadcastId: z.string().uuid().nullable().optional(),
   title: z.string().default(''),
-  imageUrls: z.array(z.string()).default([])
+  imageUrls: z.array(z.string()).default([]),
+  replyToMessageId: z.string().uuid().nullable().optional(),
+  replyToBody: z.string().nullable().optional(),
+  replyToSenderId: z.string().uuid().nullable().optional()
 })
 const conversationSchema = z.object({
   id: z.string().uuid(),
@@ -123,7 +126,8 @@ export const messagingApi = {
     id: string,
     body: string,
     clientId?: string,
-    imageUrls: string[] = []
+    imageUrls: string[] = [],
+    replyToMessageId?: string | null
   ) =>
     z.object({ data: messageSchema }).parse(
       await call(`/conversations/${id}/messages`, token, {
@@ -131,6 +135,7 @@ export const messagingApi = {
         body: JSON.stringify({
           body,
           image_urls: imageUrls,
+          ...(replyToMessageId ? { reply_to_message_id: replyToMessageId } : {}),
           ...(clientId ? { client_id: clientId } : {})
         })
       })

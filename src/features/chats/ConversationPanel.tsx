@@ -16,11 +16,13 @@ import {
   Info,
   LoaderCircle,
   Megaphone,
+  Pencil,
   Reply,
   Search,
   Volume2,
   VolumeX,
   X,
+  Trash2,
   ArrowDown
 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -107,6 +109,8 @@ export function ConversationPanel({
   onRetry,
   onDiscard,
   onReact,
+  onEditMessage,
+  onDeleteMessage,
   offline,
   onReportBroadcast
 }: {
@@ -129,6 +133,8 @@ export function ConversationPanel({
   onRetry: (item: QueuedMessage) => Promise<void>
   onDiscard: (id: string) => Promise<void>
   onReact: (messageId: string, emoji: string | null) => Promise<void>
+  onEditMessage: (messageId: string, body: string) => Promise<void>
+  onDeleteMessage: (messageId: string) => Promise<void>
   offline: boolean
   onReportBroadcast: (id: string) => Promise<void>
 }) {
@@ -139,6 +145,8 @@ export function ConversationPanel({
   const [image, setImage] = useState<string>()
   const [report, setReport] = useState<string>()
   const [replyTo, setReplyTo] = useState<ConversationDetail['messages'][number] | null>(null)
+  const [editing, setEditing] = useState<ConversationDetail['messages'][number] | null>(null)
+  const [editBody, setEditBody] = useState('')
   const [reported, setReported] = useState<string[]>([])
   const [busy, setBusy] = useState('')
   const [scrolledUp, setScrolledUp] = useState(false)
@@ -394,37 +402,68 @@ export function ConversationPanel({
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
                 >
-                  {(message.body.trim() || message.imageUrls.length || message.audioUrl) && (
-                    <div className="absolute -top-3 right-2 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
-                      {reactionChoices.map((emoji) => (
-                        <button
-                          type="button"
-                          key={emoji}
-                          className="grid size-7 place-items-center rounded-full text-sm transition hover:bg-slate-100 active:scale-95 dark:hover:bg-slate-800"
-                          aria-label={`React ${emoji}`}
-                          disabled={!!busy}
-                          onClick={() => toggleReaction(message, emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                      <IconButton
-                        label="Copy message"
-                        icon={<Copy className="size-3.5" />}
-                        size="sm"
-                        variant="quiet"
-                        onClick={() => void copyMessage(message.body)}
-                      />
-                      <IconButton
-                        label="Reply to message"
-                        icon={<Reply className="size-3.5" />}
-                        size="sm"
-                        variant="quiet"
-                        onClick={() => setReplyTo(message)}
-                      />
-                    </div>
-                  )}
-                  {message.replyToMessageId && (
+                  {!message.deletedAt &&
+                    (message.body.trim() || message.imageUrls.length || message.audioUrl) && (
+                      <div className="absolute -top-3 right-2 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
+                        {reactionChoices.map((emoji) => (
+                          <button
+                            type="button"
+                            key={emoji}
+                            className="grid size-7 place-items-center rounded-full text-sm transition hover:bg-slate-100 active:scale-95 dark:hover:bg-slate-800"
+                            aria-label={`React ${emoji}`}
+                            disabled={!!busy}
+                            onClick={() => toggleReaction(message, emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        <IconButton
+                          label="Copy message"
+                          icon={<Copy className="size-3.5" />}
+                          size="sm"
+                          variant="quiet"
+                          onClick={() => void copyMessage(message.body)}
+                        />
+                        <IconButton
+                          label="Reply to message"
+                          icon={<Reply className="size-3.5" />}
+                          size="sm"
+                          variant="quiet"
+                          onClick={() => setReplyTo(message)}
+                        />
+                        {own &&
+                          message.body.trim() &&
+                          !message.imageUrls.length &&
+                          !message.audioUrl && (
+                            <IconButton
+                              label="Edit message"
+                              icon={<Pencil className="size-3.5" />}
+                              size="sm"
+                              variant="quiet"
+                              onClick={() => {
+                                setEditing(message)
+                                setEditBody(message.body)
+                              }}
+                            />
+                          )}
+                        {own && (
+                          <IconButton
+                            label="Delete message"
+                            icon={<Trash2 className="size-3.5" />}
+                            size="sm"
+                            variant="danger"
+                            onClick={() =>
+                              void run(
+                                `delete:${message.id}`,
+                                () => onDeleteMessage(message.id),
+                                'Message deleted'
+                              )
+                            }
+                          />
+                        )}
+                      </div>
+                    )}
+                  {!message.deletedAt && message.replyToMessageId && (
                     <button
                       type="button"
                       className="mb-2 w-full rounded-xl border-l-4 border-[var(--color-primary)] bg-white/70 px-3 py-2 text-left text-xs text-slate-600 dark:bg-slate-950/50 dark:text-slate-300"
@@ -444,43 +483,56 @@ export function ConversationPanel({
                       </span>
                     </button>
                   )}
-                  {message.broadcastId && (
+                  {message.deletedAt ? (
+                    <p className="text-sm italic text-slate-500 dark:text-slate-400">
+                      This message was deleted
+                    </p>
+                  ) : null}
+                  {!message.deletedAt && message.broadcastId && (
                     <p className="mb-2 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
                       <Megaphone className="size-3" />
                       Broadcast
                     </p>
                   )}
-                  {message.title && <h2 className="mb-1 text-sm font-semibold">{message.title}</h2>}
-                  {message.imageUrls.map((url, imageIndex) => (
-                    <button
-                      type="button"
-                      key={url}
-                      className="mb-2 block overflow-hidden rounded-xl"
-                      aria-label={'View image ' + (imageIndex + 1)}
-                      onClick={() => setImage(url)}
-                    >
-                      <img
-                        src={broadcastMediaUrl(url)}
-                        alt={'Message image ' + (imageIndex + 1)}
-                        loading="lazy"
-                        onLoad={() => {
-                          if (stickToBottom.current) scrollToBottom()
-                        }}
-                        className="max-h-72 w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                  {message.audioUrl && (
+                  {!message.deletedAt && message.title && (
+                    <h2 className="mb-1 text-sm font-semibold">{message.title}</h2>
+                  )}
+                  {!message.deletedAt &&
+                    message.imageUrls.map((url, imageIndex) => (
+                      <button
+                        type="button"
+                        key={url}
+                        className="mb-2 block overflow-hidden rounded-xl"
+                        aria-label={'View image ' + (imageIndex + 1)}
+                        onClick={() => setImage(url)}
+                      >
+                        <img
+                          src={broadcastMediaUrl(url)}
+                          alt={'Message image ' + (imageIndex + 1)}
+                          loading="lazy"
+                          onLoad={() => {
+                            if (stickToBottom.current) scrollToBottom()
+                          }}
+                          className="max-h-72 w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  {!message.deletedAt && message.audioUrl && (
                     <audio
                       controls
                       src={broadcastMediaUrl(message.audioUrl)}
                       className="mb-2 h-10 w-64 max-w-full"
                     />
                   )}
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                    {message.body}
-                  </p>
-                  {Object.entries(message.reactions ?? {}).length ? (
+                  {!message.deletedAt && message.body.trim() ? (
+                    <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                      {message.body}
+                      {message.editedAt ? (
+                        <span className="ml-1 text-[10px] text-slate-500">(edited)</span>
+                      ) : null}
+                    </p>
+                  ) : null}
+                  {!message.deletedAt && Object.entries(message.reactions ?? {}).length ? (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {Object.entries(message.reactions ?? {}).map(([emoji, users]) => (
                         <button
@@ -773,6 +825,42 @@ export function ConversationPanel({
             <dd>{muted ? 'Muted' : 'On'}</dd>
           </div>
         </dl>
+      </Dialog>
+      <Dialog
+        open={!!editing}
+        title="Edit message"
+        description="Update this text message for everyone in the chat."
+        onClose={() => setEditing(null)}
+      >
+        <textarea
+          value={editBody}
+          maxLength={4000}
+          rows={4}
+          onChange={(event) => setEditBody(event.target.value)}
+          className="field-control min-h-28 resize-none"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="quiet" disabled={!!busy} onClick={() => setEditing(null)}>
+            Cancel
+          </Button>
+          <Button
+            loading={busy === 'edit'}
+            disabled={!!busy || !editBody.trim()}
+            onClick={() => {
+              if (!editing) return
+              void run(
+                'edit',
+                async () => {
+                  await onEditMessage(editing.id, editBody)
+                  setEditing(null)
+                },
+                'Message updated'
+              )
+            }}
+          >
+            Save changes
+          </Button>
+        </div>
       </Dialog>
       <Dialog open={!!image} title="Broadcast image" onClose={closeImage}>
         {image && (

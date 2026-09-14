@@ -16,6 +16,8 @@ const messageSchema = z.object({
   createdAt: z.coerce.date(),
   deliveredAt: z.coerce.date().nullable().optional(),
   readAt: z.coerce.date().nullable(),
+  editedAt: z.coerce.date().nullable().optional(),
+  deletedAt: z.coerce.date().nullable().optional(),
   broadcastId: z.string().uuid().nullable().optional(),
   title: z.string().default(''),
   imageUrls: z.array(z.string()).default([]),
@@ -162,6 +164,19 @@ export const messagingApi = {
       await call(`/conversations/${conversationId}/messages/${messageId}/reaction`, token, {
         method: 'PUT',
         body: JSON.stringify({ emoji })
+      })
+    ).data,
+  edit: async (token: string, conversationId: string, messageId: string, body: string) =>
+    z.object({ data: messageSchema }).parse(
+      await call(`/conversations/${conversationId}/messages/${messageId}`, token, {
+        method: 'PATCH',
+        body: JSON.stringify({ body })
+      })
+    ).data,
+  delete: async (token: string, conversationId: string, messageId: string) =>
+    z.object({ data: messageSchema }).parse(
+      await call(`/conversations/${conversationId}/messages/${messageId}`, token, {
+        method: 'DELETE'
       })
     ).data,
   state: (token: string, id: string, state: { archived?: boolean; muted?: boolean }) =>

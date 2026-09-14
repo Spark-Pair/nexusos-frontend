@@ -192,6 +192,8 @@ export default function ChatsPage() {
             onRetry={messaging.retry}
             onDiscard={messaging.discard}
             onReact={messaging.react}
+            onEditMessage={messaging.editMessage}
+            onDeleteMessage={messaging.deleteMessage}
             offline={!serverConfirmed}
             onReportBroadcast={messaging.reportBroadcast}
           />

@@ -38,6 +38,8 @@ function normalizeMessage(message: Message): Message {
     createdAt: asDate(message.createdAt),
     deliveredAt: message.deliveredAt ? asDate(message.deliveredAt) : null,
     readAt: message.readAt ? asDate(message.readAt) : null,
+    editedAt: message.editedAt ? asDate(message.editedAt) : null,
+    deletedAt: message.deletedAt ? asDate(message.deletedAt) : null,
     replyToMessageId: message.replyToMessageId ?? null,
     replyToBody: message.replyToBody ?? null,
     replyToSenderId: message.replyToSenderId ?? null,
@@ -414,6 +416,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       createdAt: item.createdAt,
       deliveredAt: null,
       readAt: null,
+      editedAt: null,
+      deletedAt: null,
       title: '',
       reactions: {},
       localStatus: serverConfirmed && navigator.onLine ? 'sending' : 'queued'
@@ -484,6 +488,26 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         : current
     )
   }
+  const editMessage = async (messageId: string, body: string) => {
+    const conversationId = selectedId.current
+    if (!conversationId) return
+    const message = await messagingApi.edit(token, conversationId, messageId, body)
+    setSelectedState((current) =>
+      current?.conversation.id === conversationId
+        ? { ...current, messages: mergeMessage(current.messages, message) }
+        : current
+    )
+  }
+  const deleteMessage = async (messageId: string) => {
+    const conversationId = selectedId.current
+    if (!conversationId) return
+    const message = await messagingApi.delete(token, conversationId, messageId)
+    setSelectedState((current) =>
+      current?.conversation.id === conversationId
+        ? { ...current, messages: mergeMessage(current.messages, message) }
+        : current
+    )
+  }
   const setConversationState = async (state: { archived?: boolean; muted?: boolean }) => {
     if (!selectedId.current) return
     if (!serverConfirmed || !navigator.onLine)
@@ -514,6 +538,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     retry,
     discard,
     react,
+    editMessage,
+    deleteMessage,
     counterpartTyping,
     setTyping,
     setConversationState,

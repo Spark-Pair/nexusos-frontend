@@ -35,8 +35,8 @@
   --color-surface: #ffffff;
   --color-ink: #1c2420;
   --color-muted: #626e67;
-  --radius-control: 0.75rem;
-  --radius-surface: 1.25rem;
+  --radius-control: 0.95rem;
+  --radius-surface: 1.55rem;
   --border-subtle: #e3e7e5;
   --border-control: #cdd4d0;
   --border-control-hover: #87938c;
@@ -49,7 +49,7 @@
   --space-8: 2rem;
   --motion-duration: 180ms;
   --motion-easing: ease-out;
-  --shadow-overlay: 0 8px 24px rgb(18 24 21 / 10%);
+  --shadow-overlay: 0 10px 28px rgb(18 24 21 / 8%);
   font-family:
     Inter,
     ui-sans-serif,
@@ -135,7 +135,7 @@
   }
 
   .button {
-    @apply inline-flex items-center justify-center gap-2 border py-2 font-medium transition duration-200  disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 border py-2 font-semibold transition duration-200  disabled:opacity-50;
     transition-timing-function: var(--motion-easing);
   }
 
@@ -275,7 +275,7 @@
   }
 
   .chat-list-item {
-    @apply flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply flex w-full items-center gap-3 rounded-[1.25rem] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 active:scale-[0.985] dark:hover:bg-slate-800;
   }
 
   .chat-list-item-selected {
@@ -283,15 +283,16 @@
   }
 
   .message-bubble {
-    @apply max-w-[min(82%,36rem)] break-words rounded-[var(--radius-surface)] border px-3 py-2;
+    @apply max-w-[min(84%,38rem)] break-words rounded-[1.35rem] border px-3.5 py-2.5 text-[0.95rem] leading-6;
+    box-shadow: 0 1px 0 rgb(18 24 21 / 5%);
   }
 
   .message-bubble-outgoing {
-    @apply ml-auto rounded-br-[7px] border-blue-100 bg-blue-50 dark:border-blue-900 dark:bg-blue-950;
+    @apply ml-auto rounded-br-md border-emerald-100 bg-emerald-50 dark:border-emerald-900/70 dark:bg-emerald-950/80;
   }
 
   .message-bubble-incoming {
-    @apply mr-auto rounded-bl-[7px] border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900;
+    @apply mr-auto rounded-bl-md border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
 
   .brand-mark {
@@ -520,13 +521,13 @@
 /* Shared inbox: compact desktop navigation, focused mobile conversations. */
 @layer components {
   .inbox-shell {
-    @apply flex h-dvh min-h-0 gap-3 overflow-hidden p-2 lg:p-3;
+    @apply flex h-dvh min-h-0 gap-3 overflow-hidden bg-slate-100 p-2 lg:p-3 dark:bg-slate-950;
   }
   .inbox-shell-with-sidebar {
     @apply lg:grid lg:grid-cols-[216px_340px_minmax(0,1fr)] xl:grid-cols-[216px_360px_minmax(0,1fr)];
   }
   .inbox-sidebar {
-    @apply hidden h-[calc(100dvh-1.5rem)] min-h-0 flex-col rounded-3xl border border-slate-200 bg-white p-4 lg:flex dark:border-slate-800 dark:bg-slate-900;
+    @apply hidden h-[calc(100dvh-1.5rem)] min-h-0 flex-col rounded-[1.65rem] border border-slate-200 bg-white/95 p-4 backdrop-blur lg:flex dark:border-slate-800 dark:bg-slate-900/95;
   }
   .inbox-rail {
     @apply hidden w-14 shrink-0 flex-col items-center gap-4 py-3 lg:flex;
@@ -547,20 +548,33 @@
     @apply h-full min-h-0 min-w-0 flex-1;
   }
   .conversation-panel {
-    @apply relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-950;
+    @apply relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 dark:border-slate-800;
+    background-color: rgb(241 243 242 / 0.8);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgb(33 102 83 / 0.055) 1px, transparent 0),
+      linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(241 243 242 / 0.92));
+    background-size:
+      22px 22px,
+      100% 100%;
+  }
+  .dark .conversation-panel {
+    background-color: #121815;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgb(172 210 200 / 0.06) 1px, transparent 0),
+      linear-gradient(180deg, rgb(28 36 32 / 0.72), rgb(18 24 21 / 0.98));
   }
   .inbox-empty {
     @apply flex w-full flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white/50 px-8 text-center dark:border-slate-800 dark:bg-slate-900/40;
   }
   .conversation-header,
   .composer-panel {
-    @apply border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-900/95;
+    @apply border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90;
   }
   .chat-list-item {
     @apply border-transparent bg-transparent hover:border-transparent hover:bg-slate-50 dark:border-transparent dark:bg-transparent dark:hover:border-transparent dark:hover:bg-slate-900;
   }
   .chat-list-item-selected {
-    @apply border-transparent bg-blue-50 hover:bg-blue-50 dark:border-transparent dark:bg-blue-950/60 dark:hover:bg-blue-950/60;
+    @apply border-transparent bg-emerald-50 hover:bg-emerald-50 dark:border-transparent dark:bg-emerald-950/60 dark:hover:bg-emerald-950/60;
   }
   .toast-stack {
     @apply pointer-events-none fixed bottom-5 right-5 z-[100] flex w-[calc(100%-2.5rem)] max-w-sm flex-col gap-2;
@@ -571,13 +585,34 @@
   .button:active:not(:disabled),
   .icon-button:active:not(:disabled),
   .spring-interaction:active:not(:disabled),
+  .chat-list-item:active,
   .inbox-rail-link:active {
     transform: scale(0.97);
   }
 }
+@media (max-width: 1023px) {
+  .inbox-shell {
+    gap: 0;
+    padding: 0;
+  }
+  .inbox-list > div,
+  .conversation-panel,
+  .inbox-empty {
+    border-radius: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+  }
+  .conversation-header {
+    margin: 0.5rem;
+    border-radius: 1.35rem;
+  }
+  .message-bubble {
+    max-width: min(88%, 34rem);
+  }
+}
 @media (max-width: 639px) {
   .inbox-shell {
-    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-top: max(0rem, env(safe-area-inset-top));
   }
   .toast-stack {
     top: max(0.75rem, env(safe-area-inset-top));
@@ -589,7 +624,15 @@
     min-width: 44px;
     min-height: 44px;
   }
+  .message-bubble {
+    max-width: 91%;
+    padding: 0.62rem 0.78rem;
+  }
+  .composer-panel {
+    border-radius: 1.35rem;
+  }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .button:active:not(:disabled),
   .icon-button:active:not(:disabled),

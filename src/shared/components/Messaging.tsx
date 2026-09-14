@@ -238,7 +238,7 @@ export function MessageComposer({
       ) : null}
       <form
         onSubmit={(event) => void submit(event)}
-        className="composer-panel flex items-end gap-1 p-2"
+        className="composer-panel flex items-end gap-1.5 p-1.5 shadow-sm shadow-slate-950/5"
       >
         <IconButton
           label="Emoji"
@@ -320,7 +320,7 @@ export function MessageComposer({
           }}
           onBlur={() => typing(false)}
           placeholder="Message"
-          className="field-control min-h-10 max-h-40 resize-none border-transparent bg-transparent dark:bg-transparent"
+          className="field-control min-h-10 max-h-40 resize-none rounded-[1.1rem] border-transparent bg-transparent px-2 dark:bg-transparent"
         />
         <IconButton
           type="submit"
@@ -335,6 +335,7 @@ export function MessageComposer({
           disabled={sending || (!draft.trim() && !files.length && !audio)}
           variant="brand"
           size="md"
+          className="rounded-[1.1rem]"
         />
       </form>
     </div>

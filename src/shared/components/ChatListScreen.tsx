@@ -59,9 +59,9 @@ export function ChatListScreen({
   })
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden bg-white dark:bg-slate-950 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border-2 border-slate-300 dark:border-slate-700' : 'h-full min-h-0 rounded-[var(--radius-surface)] border border-slate-300 dark:border-slate-700'}`}
+      className={`flex w-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-950/95 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border-2 border-slate-300 dark:border-slate-700' : 'h-full min-h-0 rounded-[var(--radius-surface)] border border-slate-300 dark:border-slate-700'}`}
     >
-      <header className="px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
+      <header className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-5 dark:border-slate-900 sm:px-6 sm:pt-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600">
@@ -89,14 +89,14 @@ export function ChatListScreen({
             onChange={onQueryChange}
           />
         </div>
-        <div className="mt-3 flex gap-2" aria-label="Chat filters">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Chat filters">
           {(['all', 'unread', 'archived'] as const).map((item) => (
             <button
               key={item}
               type="button"
               aria-pressed={filter === item}
               onClick={() => onFilterChange(item)}
-              className={`spring-interaction min-h-9 rounded-[var(--radius-control)] border px-4 text-xs font-semibold capitalize transition  ${filter === item ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200' : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400'}`}
+              className={`spring-interaction min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold capitalize transition  ${filter === item ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400'}`}
             >
               {item}
             </button>
@@ -108,7 +108,7 @@ export function ChatListScreen({
           {status}
         </div>
       )}
-      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 pb-3">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
         {visible.length ? (
           visible.map((chat) => (
             <button
@@ -116,12 +116,22 @@ export function ChatListScreen({
               type="button"
               onClick={() => onOpenConversation(chat)}
               aria-current={selectedId === chat.id ? 'true' : undefined}
-              className={`chat-list-item ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
+              className={`chat-list-item group ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
             >
-              <Avatar label={chat.name} />
+              <span
+                className={
+                  selectedId === chat.id
+                    ? 'rounded-[1.15rem] ring-2 ring-emerald-500/20'
+                    : 'rounded-[1.15rem]'
+                }
+              >
+                <Avatar label={chat.name} />
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-bold">{chat.name}</span>
+                  <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
+                    {chat.name}
+                  </span>
                   {chat.verified ? (
                     <BadgeCheck
                       aria-label="Verified"
@@ -143,7 +153,7 @@ export function ChatListScreen({
                 </span>
                 {chat.unreadCount ? (
                   <span className="grid min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    {chat.unreadCount}
+                    {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                   </span>
                 ) : null}
               </span>

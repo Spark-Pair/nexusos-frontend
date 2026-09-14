@@ -59,12 +59,15 @@ export function ChatListScreen({
   })
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden bg-white dark:bg-[#111b21] ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border-2 border-slate-300 dark:border-slate-700' : 'h-full min-h-0 rounded-none border-0'}`}
+      className={`flex w-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-950/95 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border-2 border-slate-300 dark:border-slate-700' : 'h-full min-h-0 rounded-[var(--radius-surface)] border border-slate-300 dark:border-slate-700'}`}
     >
-      <header className="shrink-0 border-b border-slate-100 px-5 pb-3 pt-5 dark:border-[#26343d]">
+      <header className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-5 dark:border-slate-900 sm:px-6 sm:pt-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-[24px] font-semibold tracking-[-0.03em]">Chats</h3>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600">
+              NexusOS
+            </p>
+            <h3 className="mt-1 text-[28px] font-bold tracking-[-0.035em]">Chats</h3>
           </div>
           <div className="flex items-center gap-1">
             {headerActions}
@@ -81,7 +84,7 @@ export function ChatListScreen({
         <div className="mt-4">
           <SearchField
             label="Search chats"
-            placeholder="Search or start a new chat"
+            placeholder="Search chats"
             value={query}
             onChange={onQueryChange}
           />
@@ -93,7 +96,7 @@ export function ChatListScreen({
               type="button"
               aria-pressed={filter === item}
               onClick={() => onFilterChange(item)}
-              className={`spring-interaction min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold capitalize transition  ${filter === item ? 'border-[#00a884] bg-[#00a884] text-white dark:bg-[#00a884] dark:text-[#111b21]' : 'border-transparent bg-[#f0f2f5] text-slate-700 hover:bg-slate-200 dark:bg-[#202c33] dark:text-slate-200 dark:hover:bg-[#2a3942]'}`}
+              className={`spring-interaction min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold capitalize transition  ${filter === item ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400'}`}
             >
               {item}
             </button>
@@ -105,7 +108,7 @@ export function ChatListScreen({
           {status}
         </div>
       )}
-      <div className="min-h-0 flex-1 overflow-y-auto py-2">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
         {visible.length ? (
           visible.map((chat) => (
             <button
@@ -117,7 +120,9 @@ export function ChatListScreen({
             >
               <span
                 className={
-                  selectedId === chat.id ? 'rounded-full ring-2 ring-[#00a884]/25' : 'rounded-full'
+                  selectedId === chat.id
+                    ? 'rounded-[1.15rem] ring-2 ring-emerald-500/20'
+                    : 'rounded-[1.15rem]'
                 }
               >
                 <Avatar label={chat.name} />
@@ -147,7 +152,7 @@ export function ChatListScreen({
                   {chat.time}
                 </span>
                 {chat.unreadCount ? (
-                  <span className="grid min-w-5 place-items-center rounded-full bg-[#00a884] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  <span className="grid min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
                     {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                   </span>
                 ) : null}

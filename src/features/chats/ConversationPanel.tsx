@@ -258,7 +258,7 @@ export function ConversationPanel({
       aria-label={'Conversation with ' + detail.counterpart.name}
       className="conversation-panel"
     >
-      <header className="conversation-header flex min-h-[60px] items-center gap-3 px-4">
+      <header className="conversation-header m-2 flex min-h-16 items-center gap-2 px-2 sm:m-3 sm:gap-3 sm:px-4">
         <IconButton
           onClick={onBack}
           label="Back to chats"
@@ -385,7 +385,7 @@ export function ConversationPanel({
       )}
       <div
         ref={scroll}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-10 lg:px-14"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
         onScroll={() => {
           const node = scroll.current
           if (node) {
@@ -395,7 +395,7 @@ export function ConversationPanel({
           }
         }}
       >
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2">
           {!visible.length && (
             <p className="py-10 text-center text-sm text-slate-500">
               {starredOnly
@@ -430,7 +430,7 @@ export function ConversationPanel({
                 >
                   {!message.deletedAt &&
                     (message.body.trim() || message.imageUrls.length || message.audioUrl) && (
-                      <div className="absolute -top-8 right-0 z-10 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-lg shadow-slate-950/10 transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-[#26343d] dark:bg-[#202c33]/95">
+                      <div className="absolute -top-3 right-2 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
                         {reactionChoices.map((emoji) => (
                           <button
                             type="button"
@@ -775,8 +775,8 @@ export function ConversationPanel({
           </div>
         </footer>
       ) : detail.conversation.status === 'accepted' ? (
-        <footer className="bg-[#f0f2f5] px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 dark:bg-[#202c33]">
-          <div className="mx-auto max-w-5xl">
+        <footer className="px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 sm:pb-3">
+          <div className="mx-auto max-w-3xl">
             {replyTo && (
               <div className="mb-2 flex items-start gap-3 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/90">
                 <div className="min-w-0 flex-1 border-l-4 border-[var(--color-primary)] pl-3">

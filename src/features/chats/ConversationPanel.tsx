@@ -13,6 +13,8 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock3,
   Copy,
@@ -188,7 +190,7 @@ export function ConversationPanel({
   const [starredOnly, setStarredOnly] = useState(false)
   const [activeSearchIndex, setActiveSearchIndex] = useState(0)
   const [info, setInfo] = useState(false)
-  const [image, setImage] = useState<string>()
+  const [image, setImage] = useState<{ urls: string[]; index: number }>()
   const [report, setReport] = useState<string>()
   const [replyTo, setReplyTo] = useState<ConversationDetail['messages'][number] | null>(null)
   const [editing, setEditing] = useState<ConversationDetail['messages'][number] | null>(null)
@@ -216,6 +218,7 @@ export function ConversationPanel({
   }, [])
   const closeInfo = useCallback(() => setInfo(false), [])
   const closeImage = useCallback(() => setImage(undefined), [])
+  const currentImage = image?.urls[image.index]
   const closeReport = useCallback(() => {
     if (!pending.current) setReport(undefined)
   }, [])
@@ -407,6 +410,24 @@ export function ConversationPanel({
     if (!normalizedQuery) return true
     return matchingMessageIds.includes(message.id)
   })
+  const visibleImages = useMemo(
+    () => visible.flatMap((message) => (message.deletedAt ? [] : message.imageUrls)),
+    [visible]
+  )
+  const openImage = (url: string, scope: string[] = visibleImages) => {
+    const urls = scope.length ? scope : [url]
+    const index = Math.max(0, urls.indexOf(url))
+    setImage({ urls, index })
+  }
+  const moveImage = (direction: 1 | -1) => {
+    setImage((current) => {
+      if (!current?.urls.length) return current
+      return {
+        urls: current.urls,
+        index: (current.index + direction + current.urls.length) % current.urls.length
+      }
+    })
+  }
   useEffect(() => {
     setActiveSearchIndex(0)
   }, [normalizedQuery, detail.conversation.id])
@@ -427,6 +448,16 @@ export function ConversationPanel({
       (current) => (current + direction + matchingMessageIds.length) % matchingMessageIds.length
     )
   }
+  useEffect(() => {
+    if (!image) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeImage()
+      if (event.key === 'ArrowLeft') moveImage(-1)
+      if (event.key === 'ArrowRight') moveImage(1)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [closeImage, image])
   const unsent = queued.filter((item) => !detail.messages.some((message) => message.id === item.id))
   return (
     <section
@@ -841,7 +872,7 @@ export function ConversationPanel({
                         key={url}
                         className="mb-2 block overflow-hidden rounded-xl"
                         aria-label={'View image ' + (imageIndex + 1)}
-                        onClick={() => setImage(url)}
+                        onClick={() => openImage(url)}
                       >
                         <img
                           src={broadcastMediaUrl(url)}
@@ -941,7 +972,7 @@ export function ConversationPanel({
                     key={url}
                     className="mb-2 block overflow-hidden rounded-xl"
                     aria-label={'View queued image ' + (imageIndex + 1)}
-                    onClick={() => setImage(url)}
+                    onClick={() => openImage(url, item.imageUrls ?? [url])}
                   >
                     <img
                       src={broadcastMediaUrl(url)}
@@ -963,7 +994,7 @@ export function ConversationPanel({
                       onLoad={() => {
                         if (stickToBottom.current) scrollToBottom()
                       }}
-                      onOpen={setImage}
+                      onOpen={(url) => openImage(url, [url])}
                     />
                   ))}
                 {item.audioUrl ? (
@@ -1246,14 +1277,44 @@ export function ConversationPanel({
           </Button>
         </div>
       </Dialog>
-      <Dialog open={!!image} title="Broadcast image" onClose={closeImage}>
-        {image && (
-          <img
-            src={broadcastMediaUrl(image)}
-            alt="Broadcast attachment"
-            className="max-h-[65dvh] w-full rounded-2xl object-contain"
-          />
-        )}
+      <Dialog open={!!image} title="Media viewer" onClose={closeImage}>
+        {currentImage && image ? (
+          <div className="space-y-3">
+            <div className="relative grid min-h-[45dvh] place-items-center overflow-hidden rounded-2xl bg-slate-950/95">
+              <img
+                src={broadcastMediaUrl(currentImage)}
+                alt={`Chat media ${image.index + 1}`}
+                className="max-h-[70dvh] w-full object-contain"
+              />
+              {image.urls.length > 1 ? (
+                <>
+                  <IconButton
+                    label="Previous image"
+                    icon={<ChevronLeft className="size-5" />}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-900/90"
+                    onClick={() => moveImage(-1)}
+                  />
+                  <IconButton
+                    label="Next image"
+                    icon={<ChevronRight className="size-5" />}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-900/90"
+                    onClick={() => moveImage(1)}
+                  />
+                </>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                {image.urls.length > 1
+                  ? `${image.index + 1} of ${image.urls.length}`
+                  : 'Image preview'}
+              </span>
+              <Button variant="quiet" size="sm" onClick={closeImage}>
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Dialog>
     </section>
   )

@@ -295,6 +295,10 @@
     @apply mr-auto rounded-bl-md border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
 
+  .message-bubble[aria-selected='true'] {
+    @apply ring-2 ring-[var(--color-brand-500)] ring-offset-2 ring-offset-transparent;
+  }
+
   .brand-mark {
     @apply grid size-10 shrink-0 place-items-center rounded-[var(--radius-control)] border border-blue-700 bg-blue-600 text-sm font-bold text-white;
   }

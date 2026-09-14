@@ -158,6 +158,7 @@ export function ConversationPanel({
   const [scrolledUp, setScrolledUp] = useState(false)
   const [newMessages, setNewMessages] = useState(0)
   const [activeMessageMenu, setActiveMessageMenu] = useState<string>()
+  const [selectedMessages, setSelectedMessages] = useState<Record<string, true>>({})
   const pending = useRef(false)
   const scroll = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
@@ -175,6 +176,9 @@ export function ConversationPanel({
   const closeReport = useCallback(() => {
     if (!pending.current) setReport(undefined)
   }, [])
+  const selectedIds = Object.keys(selectedMessages)
+  const selecting = selectedIds.length > 0
+  const selectedMessageRows = detail.messages.filter((message) => selectedMessages[message.id])
   const latest = detail.messages.at(-1)?.id
   useLayoutEffect(() => {
     stickToBottom.current = true
@@ -228,6 +232,14 @@ export function ConversationPanel({
       setBusy('')
     }
   }
+  const toggleSelectedMessage = (id: string) => {
+    setSelectedMessages((current) => {
+      const next = { ...current }
+      if (next[id]) delete next[id]
+      else next[id] = true
+      return next
+    })
+  }
   const copyMessage = async (body: string) => {
     if (!body.trim()) return
     try {
@@ -258,6 +270,7 @@ export function ConversationPanel({
       { id: 'reply', label: 'Reply', icon: Reply },
       { id: 'copy', label: 'Copy', icon: Copy, disabled: !message.body.trim() },
       { id: 'star', label: starred[message.id] ? 'Unstar' : 'Star', icon: Star },
+      { id: 'select', label: 'Select', icon: Check },
       ...(own && message.body.trim() && !message.imageUrls.length && !message.audioUrl
         ? [{ id: 'edit', label: 'Edit', icon: Pencil }]
         : []),
@@ -277,12 +290,41 @@ export function ConversationPanel({
         () => onToggleStar(message.id),
         starred[message.id] ? 'Removed from starred' : 'Added to starred'
       )
+    if (id === 'select') toggleSelectedMessage(message.id)
     if (id === 'edit') {
       setEditing(message)
       setEditBody(message.body)
     }
     if (id === 'delete')
       void run(`delete:${message.id}`, () => onDeleteMessage(message.id), 'Message deleted')
+  }
+  const copySelectedMessages = async () => {
+    const text = selectedMessageRows
+      .map((message) => {
+        const sender = message.senderId === currentUserId ? 'You' : detail.counterpart.name
+        return `[${message.createdAt.toLocaleString()}] ${sender}: ${replyLabel(message)}`
+      })
+      .join('\n')
+    await copyMessage(text)
+    setSelectedMessages({})
+  }
+  const starSelectedMessages = async () => {
+    await Promise.all(selectedIds.filter((id) => !starred[id]).map((id) => onToggleStar(id)))
+    setSelectedMessages({})
+  }
+  const deleteSelectedMessages = async () => {
+    const ownIds = selectedMessageRows
+      .filter((message) => message.senderId === currentUserId && !message.deletedAt)
+      .map((message) => message.id)
+    await Promise.all(ownIds.map((id) => onDeleteMessage(id)))
+    setSelectedMessages({})
+    if (ownIds.length !== selectedIds.length)
+      toast({
+        title: 'Some messages were not deleted',
+        description: 'Only your own messages can be deleted.',
+        tone: 'danger'
+      })
+    else toast({ title: 'Selected messages deleted', tone: 'success' })
   }
   const toggleReaction = (message: ConversationDetail['messages'][number], emoji: string) => {
     const alreadyMine = (message.reactions?.[emoji] ?? []).includes(currentUserId)
@@ -420,6 +462,39 @@ export function ConversationPanel({
           />
         </div>
       )}
+      {selecting && (
+        <div className="mx-3 mb-2 flex items-center gap-2 rounded-[var(--radius-surface)] border border-slate-200 bg-white/95 px-3 py-2 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900/95">
+          <span className="mr-auto font-semibold">{selectedIds.length} selected</span>
+          <IconButton
+            label="Copy selected messages"
+            icon={<Copy className="size-4" />}
+            size="sm"
+            variant="quiet"
+            onClick={() => void copySelectedMessages()}
+          />
+          <IconButton
+            label="Star selected messages"
+            icon={<Star className="size-4" />}
+            size="sm"
+            variant="quiet"
+            onClick={() => void starSelectedMessages()}
+          />
+          <IconButton
+            label="Delete selected own messages"
+            icon={<Trash2 className="size-4" />}
+            size="sm"
+            variant="danger"
+            onClick={() => void deleteSelectedMessages()}
+          />
+          <IconButton
+            label="Cancel selection"
+            icon={<X className="size-4" />}
+            size="sm"
+            variant="quiet"
+            onClick={() => setSelectedMessages({})}
+          />
+        </div>
+      )}
       {offline && (
         <p
           role="status"
@@ -477,6 +552,10 @@ export function ConversationPanel({
                     'message-bubble group relative ' +
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
+                  aria-selected={!!selectedMessages[message.id]}
+                  onClick={() => {
+                    if (selecting && !message.deletedAt) toggleSelectedMessage(message.id)
+                  }}
                   onContextMenu={(event) => {
                     if (message.deletedAt) return
                     event.preventDefault()
@@ -486,13 +565,19 @@ export function ConversationPanel({
                     if (message.deletedAt || event.pointerType === 'mouse') return
                     clearLongPress()
                     longPress.current = window.setTimeout(() => {
-                      setActiveMessageMenu(message.id)
+                      if (selecting) toggleSelectedMessage(message.id)
+                      else setActiveMessageMenu(message.id)
                     }, 450)
                   }}
                   onPointerUp={clearLongPress}
                   onPointerLeave={clearLongPress}
                   onPointerCancel={clearLongPress}
                 >
+                  {selectedMessages[message.id] && (
+                    <span className="absolute -left-3 -top-3 z-10 grid size-6 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-sm">
+                      <Check className="size-3.5" />
+                    </span>
+                  )}
                   {!message.deletedAt &&
                     (message.body.trim() || message.imageUrls.length || message.audioUrl) && (
                       <div className="absolute -top-4 right-2 z-20 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-lg shadow-slate-950/10 transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">

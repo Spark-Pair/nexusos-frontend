@@ -34,6 +34,7 @@ const outboxLabels: Record<QueuedMessage['status'], string> = {
   sending: 'Sending',
   failed: 'Not sent'
 }
+const reactionChoices = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 
 function outboxIcon(status: QueuedMessage['status']) {
   return status === 'uploading' || status === 'sending' ? (
@@ -105,6 +106,7 @@ export function ConversationPanel({
   queued,
   onRetry,
   onDiscard,
+  onReact,
   offline,
   onReportBroadcast
 }: {
@@ -126,6 +128,7 @@ export function ConversationPanel({
   queued: QueuedMessage[]
   onRetry: (item: QueuedMessage) => Promise<void>
   onDiscard: (id: string) => Promise<void>
+  onReact: (messageId: string, emoji: string | null) => Promise<void>
   offline: boolean
   onReportBroadcast: (id: string) => Promise<void>
 }) {
@@ -216,6 +219,14 @@ export function ConversationPanel({
     if (body) return body
     if (message.audioUrl) return 'Voice message'
     return message.imageUrls.length ? `${message.imageUrls.length} photo attachment` : 'Message'
+  }
+  const toggleReaction = (message: ConversationDetail['messages'][number], emoji: string) => {
+    const alreadyMine = (message.reactions?.[emoji] ?? []).includes(currentUserId)
+    void run(
+      `${message.id}:${emoji}`,
+      () => onReact(message.id, alreadyMine ? null : emoji),
+      alreadyMine ? 'Reaction removed' : 'Reaction added'
+    )
   }
   const pendingForCustomer =
     detail.conversation.status === 'pending' &&
@@ -384,7 +395,19 @@ export function ConversationPanel({
                   }
                 >
                   {(message.body.trim() || message.imageUrls.length || message.audioUrl) && (
-                    <div className="absolute -top-3 right-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="absolute -top-3 right-2 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
+                      {reactionChoices.map((emoji) => (
+                        <button
+                          type="button"
+                          key={emoji}
+                          className="grid size-7 place-items-center rounded-full text-sm transition hover:bg-slate-100 active:scale-95 dark:hover:bg-slate-800"
+                          aria-label={`React ${emoji}`}
+                          disabled={!!busy}
+                          onClick={() => toggleReaction(message, emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
                       <IconButton
                         label="Copy message"
                         icon={<Copy className="size-3.5" />}
@@ -457,6 +480,26 @@ export function ConversationPanel({
                   <p className="whitespace-pre-wrap break-words text-sm leading-6">
                     {message.body}
                   </p>
+                  {Object.entries(message.reactions ?? {}).length ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {Object.entries(message.reactions ?? {}).map(([emoji, users]) => (
+                        <button
+                          type="button"
+                          key={emoji}
+                          className={
+                            'inline-flex min-h-7 items-center gap-1 rounded-full border px-2 text-xs transition active:scale-95 ' +
+                            (users.includes(currentUserId)
+                              ? 'border-[var(--color-primary)] bg-emerald-50 text-[var(--color-primary)] dark:bg-emerald-950/40'
+                              : 'border-slate-200 bg-white/80 text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300')
+                          }
+                          onClick={() => toggleReaction(message, emoji)}
+                        >
+                          <span>{emoji}</span>
+                          <span>{users.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500 dark:text-slate-400">
                     {message.broadcastId && !own && (
                       <button

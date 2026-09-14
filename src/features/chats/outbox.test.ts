@@ -28,7 +28,14 @@ describe('durable inbox outbox', () => {
     const send = vi
       .spyOn(messagingApi, 'send')
       .mockRejectedValueOnce(new TypeError('Network disconnected'))
-      .mockResolvedValue({ ...item, senderId: actor, title: '', imageUrls: [], readAt: null })
+      .mockResolvedValue({
+        ...item,
+        senderId: actor,
+        title: '',
+        imageUrls: [],
+        reactions: {},
+        readAt: null
+      })
     await syncOutbox(actor, 'token')
     expect(await offlineStore.queued(actor)).toHaveLength(1)
     await Promise.all([syncOutbox(actor, 'token'), syncOutbox(actor, 'token')])

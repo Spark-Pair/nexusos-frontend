@@ -20,6 +20,7 @@ const messageSchema = z.object({
   title: z.string().default(''),
   imageUrls: z.array(z.string()).default([]),
   audioUrl: z.string().nullable().optional(),
+  reactions: z.record(z.string(), z.array(z.string())).default({}),
   replyToMessageId: z.string().uuid().nullable().optional(),
   replyToBody: z.string().nullable().optional(),
   replyToSenderId: z.string().uuid().nullable().optional(),
@@ -154,6 +155,13 @@ export const messagingApi = {
           ...(replyToMessageId ? { reply_to_message_id: replyToMessageId } : {}),
           ...(clientId ? { client_id: clientId } : {})
         })
+      })
+    ).data,
+  react: async (token: string, conversationId: string, messageId: string, emoji: string | null) =>
+    z.object({ data: messageSchema }).parse(
+      await call(`/conversations/${conversationId}/messages/${messageId}/reaction`, token, {
+        method: 'PUT',
+        body: JSON.stringify({ emoji })
       })
     ).data,
   state: (token: string, id: string, state: { archived?: boolean; muted?: boolean }) =>

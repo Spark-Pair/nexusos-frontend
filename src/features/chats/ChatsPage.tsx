@@ -191,6 +191,7 @@ export default function ChatsPage() {
             queued={messaging.queued.filter((item) => item.conversationId === conversationId)}
             onRetry={messaging.retry}
             onDiscard={messaging.discard}
+            onReact={messaging.react}
             offline={!serverConfirmed}
             onReportBroadcast={messaging.reportBroadcast}
           />

@@ -42,6 +42,7 @@ function normalizeMessage(message: Message): Message {
     replyToBody: message.replyToBody ?? null,
     replyToSenderId: message.replyToSenderId ?? null,
     audioUrl: message.audioUrl ?? null,
+    reactions: message.reactions ?? {},
     localStatus: message.localStatus
   }
 }
@@ -414,6 +415,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       deliveredAt: null,
       readAt: null,
       title: '',
+      reactions: {},
       localStatus: serverConfirmed && navigator.onLine ? 'sending' : 'queued'
     }
     setSelectedState((current) => {
@@ -451,6 +453,37 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     if (selectedId.current && serverConfirmed)
       socketRef.current?.emit('conversation:typing', { conversationId: selectedId.current, active })
   }
+  const react = async (messageId: string, emoji: string | null) => {
+    const conversationId = selectedId.current
+    if (!conversationId) return
+    setSelectedState((current) => {
+      if (current?.conversation.id !== conversationId) return current
+      const next = {
+        ...current,
+        messages: current.messages.map((message) => {
+          if (message.id !== messageId) return message
+          const reactions = { ...(message.reactions ?? {}) }
+          for (const [key, users] of Object.entries(reactions)) {
+            const nextUsers = users.filter((id) => id !== actorId)
+            if (nextUsers.length) reactions[key] = nextUsers
+            else delete reactions[key]
+          }
+          if (emoji) reactions[emoji] = [...new Set([...(reactions[emoji] ?? []), actorId])]
+          return { ...message, reactions }
+        })
+      }
+      void offlineStore
+        .save(actorId, conversationId, { ...next, messages: next.messages.slice(-200) })
+        .catch(() => undefined)
+      return next
+    })
+    const message = await messagingApi.react(token, conversationId, messageId, emoji)
+    setSelectedState((current) =>
+      current?.conversation.id === conversationId
+        ? { ...current, messages: mergeMessage(current.messages, message) }
+        : current
+    )
+  }
   const setConversationState = async (state: { archived?: boolean; muted?: boolean }) => {
     if (!selectedId.current) return
     if (!serverConfirmed || !navigator.onLine)
@@ -480,6 +513,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     queued,
     retry,
     discard,
+    react,
     counterpartTyping,
     setTyping,
     setConversationState,

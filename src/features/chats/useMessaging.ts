@@ -514,6 +514,24 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         : current
     )
   }
+  const forwardMessages = async (targetConversationId: string, messages: Message[]) => {
+    if (!serverConfirmed || !navigator.onLine)
+      throw new Error('Connect to the internet to forward messages.')
+    for (const message of messages) {
+      if (message.deletedAt) continue
+      await messagingApi.send(
+        token,
+        targetConversationId,
+        message.body,
+        undefined,
+        message.imageUrls,
+        message.audioUrl ?? null
+      )
+    }
+    await refresh()
+    if (selectedId.current === targetConversationId)
+      await open(targetConversationId).catch(() => undefined)
+  }
   const deleteMessage = async (messageId: string) => {
     const conversationId = selectedId.current
     if (!conversationId) return
@@ -558,6 +576,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     react,
     editMessage,
     deleteMessage,
+    forwardMessages,
     counterpartTyping,
     setTyping,
     setConversationState,

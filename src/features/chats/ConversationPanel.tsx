@@ -13,6 +13,7 @@ import {
   CheckCheck,
   Clock3,
   Copy,
+  Forward,
   Info,
   LoaderCircle,
   Megaphone,
@@ -27,7 +28,7 @@ import {
   ArrowDown
 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { ConversationDetail } from './messagingApi'
+import type { ConversationDetail, ConversationSummary } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 
@@ -112,6 +113,8 @@ export function ConversationPanel({
   onReact,
   onEditMessage,
   onDeleteMessage,
+  onForwardMessages,
+  forwardTargets,
   starred,
   onToggleStar,
   offline,
@@ -138,6 +141,11 @@ export function ConversationPanel({
   onReact: (messageId: string, emoji: string | null) => Promise<void>
   onEditMessage: (messageId: string, body: string) => Promise<void>
   onDeleteMessage: (messageId: string) => Promise<void>
+  onForwardMessages: (
+    conversationId: string,
+    messages: ConversationDetail['messages']
+  ) => Promise<void>
+  forwardTargets: ConversationSummary[]
   starred: Record<string, true>
   onToggleStar: (messageId: string) => Promise<void>
   offline: boolean
@@ -152,6 +160,7 @@ export function ConversationPanel({
   const [report, setReport] = useState<string>()
   const [replyTo, setReplyTo] = useState<ConversationDetail['messages'][number] | null>(null)
   const [editing, setEditing] = useState<ConversationDetail['messages'][number] | null>(null)
+  const [forwarding, setForwarding] = useState<ConversationDetail['messages']>([])
   const [editBody, setEditBody] = useState('')
   const [reported, setReported] = useState<string[]>([])
   const [busy, setBusy] = useState('')
@@ -270,6 +279,7 @@ export function ConversationPanel({
       { id: 'reply', label: 'Reply', icon: Reply },
       { id: 'copy', label: 'Copy', icon: Copy, disabled: !message.body.trim() },
       { id: 'star', label: starred[message.id] ? 'Unstar' : 'Star', icon: Star },
+      { id: 'forward', label: 'Forward', icon: Forward },
       { id: 'select', label: 'Select', icon: Check },
       ...(own && message.body.trim() && !message.imageUrls.length && !message.audioUrl
         ? [{ id: 'edit', label: 'Edit', icon: Pencil }]
@@ -290,6 +300,7 @@ export function ConversationPanel({
         () => onToggleStar(message.id),
         starred[message.id] ? 'Removed from starred' : 'Added to starred'
       )
+    if (id === 'forward') setForwarding([message])
     if (id === 'select') toggleSelectedMessage(message.id)
     if (id === 'edit') {
       setEditing(message)
@@ -298,6 +309,10 @@ export function ConversationPanel({
     if (id === 'delete')
       void run(`delete:${message.id}`, () => onDeleteMessage(message.id), 'Message deleted')
   }
+  const forwardableSelectedMessages = selectedMessageRows.filter((message) => !message.deletedAt)
+  const forwardTargetOptions = forwardTargets.filter(
+    (item) => item.id !== detail.conversation.id && item.status !== 'rejected'
+  )
   const copySelectedMessages = async () => {
     const text = selectedMessageRows
       .map((message) => {
@@ -478,6 +493,14 @@ export function ConversationPanel({
             size="sm"
             variant="quiet"
             onClick={() => void starSelectedMessages()}
+          />
+          <IconButton
+            label="Forward selected messages"
+            icon={<Forward className="size-4" />}
+            size="sm"
+            variant="quiet"
+            disabled={!forwardableSelectedMessages.length}
+            onClick={() => setForwarding(forwardableSelectedMessages)}
           />
           <IconButton
             label="Delete selected own messages"
@@ -963,6 +986,47 @@ export function ConversationPanel({
           Messaging becomes available after the invitation is accepted.
         </footer>
       )}
+      <Dialog
+        open={forwarding.length > 0}
+        title="Forward message"
+        description="Choose a chat to forward the selected message content."
+        onClose={() => setForwarding([])}
+      >
+        <div className="max-h-80 space-y-1 overflow-y-auto">
+          {forwardTargetOptions.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="chat-list-item"
+              disabled={!!busy}
+              onClick={() =>
+                void run(
+                  `forward:${item.id}`,
+                  async () => {
+                    await onForwardMessages(item.id, forwarding)
+                    setForwarding([])
+                    setSelectedMessages({})
+                  },
+                  forwarding.length === 1 ? 'Message forwarded' : 'Messages forwarded'
+                )
+              }
+            >
+              <Avatar label={item.counterpart.name} />
+              <span className="min-w-0 text-left">
+                <span className="block truncate text-sm font-semibold">
+                  {item.counterpart.name}
+                </span>
+                <span className="block truncate text-xs text-slate-500">
+                  {item.lastMessage?.body ?? 'No messages yet'}
+                </span>
+              </span>
+            </button>
+          ))}
+          {!forwardTargetOptions.length && (
+            <p className="py-6 text-center text-sm text-slate-500">No other chats available.</p>
+          )}
+        </div>
+      </Dialog>
       <Dialog
         open={!!report}
         title="Report broadcast?"

@@ -41,6 +41,7 @@ function normalizeMessage(message: Message): Message {
     replyToMessageId: message.replyToMessageId ?? null,
     replyToBody: message.replyToBody ?? null,
     replyToSenderId: message.replyToSenderId ?? null,
+    audioUrl: message.audioUrl ?? null,
     localStatus: message.localStatus
   }
 }
@@ -365,12 +366,18 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     await messagingApi.respond(token, selectedId.current, decision)
     await synchronize()
   }
-  const send = async (body: string, files: File[] = [], replyTo?: Message | null) => {
+  const send = async (
+    body: string,
+    files: File[] = [],
+    audio?: File | null,
+    replyTo?: Message | null
+  ) => {
     const id = selectedId.current
     if (!id || selected?.conversation.status !== 'accepted')
       throw new Error('Open an accepted conversation first.')
     const compressedFiles = files.length ? await compressImages(files) : []
     const localImageUrls = compressedFiles.map((file) => URL.createObjectURL(file))
+    const localAudioUrl = audio ? URL.createObjectURL(audio) : null
     const item: QueuedMessage = {
       id: crypto.randomUUID(),
       actorId,
@@ -378,6 +385,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       body,
       imageUrls: [],
       images: compressedFiles.map((file) => ({ name: file.name, type: file.type, blob: file })),
+      audioUrl: null,
+      audio: audio ? { name: audio.name, type: audio.type, blob: audio } : null,
       replyToMessageId: replyTo?.id ?? null,
       replyToBody: replyTo?.body ?? null,
       replyToSenderId: replyTo?.senderId ?? null,
@@ -397,6 +406,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       senderId: actorId,
       body,
       imageUrls: localImageUrls,
+      audioUrl: localAudioUrl,
       replyToMessageId: replyTo?.id ?? null,
       replyToBody: replyTo?.body ?? null,
       replyToSenderId: replyTo?.senderId ?? null,
@@ -409,7 +419,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     setSelectedState((current) => {
       if (current?.conversation.id !== id) return current
       const next = { ...current, messages: mergeMessage(current.messages, optimistic) }
-      if (!localImageUrls.length)
+      if (!localImageUrls.length && !localAudioUrl)
         void offlineStore
           .save(actorId, id, { ...next, messages: next.messages.slice(-200) })
           .catch(() => undefined)

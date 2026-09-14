@@ -17,6 +17,11 @@ export interface QueuedImage {
   type: string
   blob: Blob
 }
+export interface QueuedAudio {
+  name: string
+  type: string
+  blob: Blob
+}
 export interface QueuedMessage {
   id: string
   actorId: string
@@ -24,6 +29,8 @@ export interface QueuedMessage {
   body: string
   imageUrls?: string[]
   images?: QueuedImage[]
+  audioUrl?: string | null
+  audio?: QueuedAudio | null
   replyToMessageId?: string | null
   replyToBody?: string | null
   replyToSenderId?: string | null

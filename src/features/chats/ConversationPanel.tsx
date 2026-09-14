@@ -30,7 +30,7 @@ import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 
 const outboxLabels: Record<QueuedMessage['status'], string> = {
   queued: 'Waiting for connection',
-  uploading: 'Uploading photo',
+  uploading: 'Uploading media',
   sending: 'Sending',
   failed: 'Not sent'
 }
@@ -81,6 +81,16 @@ function QueuedImagePreview({
   )
 }
 
+function QueuedAudioPreview({ audio }: { audio: { blob: Blob; name: string } }) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    const next = URL.createObjectURL(audio.blob)
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [audio.blob])
+  return url ? <audio controls src={url} className="mb-2 h-10 w-64 max-w-full" /> : null
+}
+
 export function ConversationPanel({
   detail,
   currentUserId,
@@ -105,6 +115,7 @@ export function ConversationPanel({
   onSend: (
     body: string,
     files?: File[],
+    audio?: File | null,
     replyTo?: ConversationDetail['messages'][number] | null
   ) => Promise<'queued' | 'uploading' | 'sending' | 'failed' | 'sent'>
   counterpartTyping: boolean
@@ -199,10 +210,11 @@ export function ConversationPanel({
     }
   }
   const replyLabel = (
-    message: Pick<ConversationDetail['messages'][number], 'body' | 'imageUrls'>
+    message: Pick<ConversationDetail['messages'][number], 'body' | 'imageUrls' | 'audioUrl'>
   ) => {
     const body = message.body.trim()
     if (body) return body
+    if (message.audioUrl) return 'Voice message'
     return message.imageUrls.length ? `${message.imageUrls.length} photo attachment` : 'Message'
   }
   const pendingForCustomer =
@@ -371,7 +383,7 @@ export function ConversationPanel({
                     (own ? 'message-bubble-outgoing' : 'message-bubble-incoming')
                   }
                 >
-                  {(message.body.trim() || message.imageUrls.length) && (
+                  {(message.body.trim() || message.imageUrls.length || message.audioUrl) && (
                     <div className="absolute -top-3 right-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                       <IconButton
                         label="Copy message"
@@ -435,6 +447,13 @@ export function ConversationPanel({
                       />
                     </button>
                   ))}
+                  {message.audioUrl && (
+                    <audio
+                      controls
+                      src={broadcastMediaUrl(message.audioUrl)}
+                      className="mb-2 h-10 w-64 max-w-full"
+                    />
+                  )}
                   <p className="whitespace-pre-wrap break-words text-sm leading-6">
                     {message.body}
                   </p>
@@ -509,6 +528,15 @@ export function ConversationPanel({
                       onOpen={setImage}
                     />
                   ))}
+                {item.audioUrl ? (
+                  <audio
+                    controls
+                    src={broadcastMediaUrl(item.audioUrl)}
+                    className="mb-2 h-10 w-64 max-w-full"
+                  />
+                ) : item.audio ? (
+                  <QueuedAudioPreview audio={item.audio} />
+                ) : null}
                 {item.body ? (
                   <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
                 ) : null}
@@ -623,10 +651,10 @@ export function ConversationPanel({
               </div>
             )}
             <MessageComposer
-              onSubmit={async (body, files) => {
+              onSubmit={async (body, files, audio) => {
                 stickToBottom.current = true
                 try {
-                  const result = await onSend(body, files, replyTo)
+                  const result = await onSend(body, files, audio, replyTo)
                   setReplyTo(null)
                   if (result === 'failed')
                     toast({

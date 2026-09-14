@@ -19,6 +19,7 @@ const messageSchema = z.object({
   broadcastId: z.string().uuid().nullable().optional(),
   title: z.string().default(''),
   imageUrls: z.array(z.string()).default([]),
+  audioUrl: z.string().nullable().optional(),
   replyToMessageId: z.string().uuid().nullable().optional(),
   replyToBody: z.string().nullable().optional(),
   replyToSenderId: z.string().uuid().nullable().optional(),
@@ -122,12 +123,25 @@ export const messagingApi = {
       .parse(json)
       .data.map((item) => item.url)
   },
+  uploadAudio: async (token: string, file: File) => {
+    const body = new FormData()
+    body.append('audio', file)
+    const response = await fetch(`${baseUrl}/media/audio`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body
+    })
+    const json: unknown = await response.json().catch(() => null)
+    if (!response.ok) throw new Error('Voice upload failed.')
+    return z.object({ data: z.object({ url: z.string() }) }).parse(json).data.url
+  },
   send: async (
     token: string,
     id: string,
     body: string,
     clientId?: string,
     imageUrls: string[] = [],
+    audioUrl?: string | null,
     replyToMessageId?: string | null
   ) =>
     z.object({ data: messageSchema }).parse(
@@ -136,6 +150,7 @@ export const messagingApi = {
         body: JSON.stringify({
           body,
           image_urls: imageUrls,
+          ...(audioUrl ? { audio_url: audioUrl } : {}),
           ...(replyToMessageId ? { reply_to_message_id: replyToMessageId } : {}),
           ...(clientId ? { client_id: clientId } : {})
         })

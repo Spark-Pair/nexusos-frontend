@@ -22,6 +22,7 @@ export function syncOutbox(actorId: string, token: string) {
       if (item.status === 'failed') continue
       try {
         let imageUrls = item.imageUrls ?? []
+        let audioUrl = item.audioUrl ?? null
         if (!imageUrls.length && item.images?.length) {
           await updateItem(item.id, { status: 'uploading', error: '' })
           imageUrls = await messagingApi.upload(
@@ -29,6 +30,13 @@ export function syncOutbox(actorId: string, token: string) {
             item.images.map((image) => new File([image.blob], image.name, { type: image.type }))
           )
           await updateItem(item.id, { imageUrls, status: 'sending' })
+        } else if (!audioUrl && item.audio) {
+          await updateItem(item.id, { status: 'uploading', error: '' })
+          audioUrl = await messagingApi.uploadAudio(
+            token,
+            new File([item.audio.blob], item.audio.name, { type: item.audio.type })
+          )
+          await updateItem(item.id, { audioUrl, status: 'sending' })
         } else {
           await updateItem(item.id, { status: 'sending', error: '' })
         }
@@ -38,6 +46,7 @@ export function syncOutbox(actorId: string, token: string) {
           item.body,
           item.id,
           imageUrls,
+          audioUrl,
           item.replyToMessageId
         )
         await offlineStore.remove(item.id)

@@ -1,9 +1,11 @@
 import {
   ImagePlus,
   Image as ImageIcon,
+  Mic,
   RefreshCw,
   SendHorizontal,
   Smile,
+  Square,
   LoaderCircle,
   X
 } from 'lucide-react'
@@ -75,19 +77,28 @@ export function MessageComposer({
   quickReplies = []
 }: {
   onAddImage?: () => void
-  onSubmit: (body: string, files: File[]) => void | Promise<void>
+  onSubmit: (body: string, files: File[], audio?: File | null) => void | Promise<void>
   onTyping?: (active: boolean) => void
   quickReplies?: readonly string[]
 }) {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [audio, setAudio] = useState<File | null>(null)
   const [error, setError] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [recording, setRecording] = useState(false)
   const pending = useRef(false)
+  const recorder = useRef<MediaRecorder | null>(null)
   const inputId = useId()
   const typingTimer = useRef<number | undefined>(undefined)
-  useEffect(() => () => window.clearTimeout(typingTimer.current), [])
+  useEffect(
+    () => () => {
+      window.clearTimeout(typingTimer.current)
+      recorder.current?.stream.getTracks().forEach((track) => track.stop())
+    },
+    []
+  )
   const typing = (active: boolean) => {
     window.clearTimeout(typingTimer.current)
     onTyping?.(active)
@@ -96,16 +107,17 @@ export function MessageComposer({
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const body = draft.trim()
-    if ((!body && !files.length) || pending.current) return
+    if ((!body && !files.length && !audio) || pending.current) return
     pending.current = true
     setSending(true)
     setError('')
     try {
-      const result = onSubmit(body, files)
+      const result = onSubmit(body, files, audio)
       if (result) await result
       typing(false)
       setDraft('')
       setFiles([])
+      setAudio(null)
       setEmojiOpen(false)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Message was not sent. Please retry.')
@@ -113,6 +125,38 @@ export function MessageComposer({
       pending.current = false
       setSending(false)
     }
+  }
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Voice recording is not supported in this browser.')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const chunks: BlobPart[] = []
+      const mediaRecorder = new MediaRecorder(stream)
+      recorder.current = mediaRecorder
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data)
+      }
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' })
+        if (blob.size)
+          setAudio(
+            new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || 'audio/webm' })
+          )
+        setRecording(false)
+      }
+      mediaRecorder.start()
+      setRecording(true)
+      setError('')
+    } catch {
+      setError('Microphone permission is needed to record a voice message.')
+    }
+  }
+  const stopRecording = () => {
+    if (recorder.current?.state === 'recording') recorder.current.stop()
   }
 
   return (
@@ -181,6 +225,17 @@ export function MessageComposer({
           ))}
         </div>
       ) : null}
+      {audio ? (
+        <div className="mb-2 flex items-center gap-2 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-2 dark:border-slate-700 dark:bg-slate-900/90">
+          <audio controls src={URL.createObjectURL(audio)} className="h-9 flex-1" />
+          <IconButton
+            onClick={() => setAudio(null)}
+            label="Remove voice message"
+            icon={<X className="size-3.5" />}
+            size="sm"
+          />
+        </div>
+      ) : null}
       <form
         onSubmit={(event) => void submit(event)}
         className="composer-panel flex items-end gap-1 p-2"
@@ -227,6 +282,16 @@ export function MessageComposer({
             }}
           />
         </label>
+        <IconButton
+          label={recording ? 'Stop recording' : 'Record voice message'}
+          icon={recording ? <Square className="size-5" /> : <Mic className="size-5" />}
+          variant={recording ? 'danger' : 'quiet'}
+          disabled={sending || Boolean(audio)}
+          onClick={() => {
+            if (recording) stopRecording()
+            else void startRecording()
+          }}
+        />
         <label className="sr-only" htmlFor={inputId}>
           Message
         </label>
@@ -267,7 +332,7 @@ export function MessageComposer({
               <SendHorizontal className="size-5" />
             )
           }
-          disabled={sending || (!draft.trim() && !files.length)}
+          disabled={sending || (!draft.trim() && !files.length && !audio)}
           variant="brand"
           size="md"
         />

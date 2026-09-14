@@ -1,4 +1,4 @@
-import { BadgeCheck } from 'lucide-react'
+import { BadgeCheck, Pin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
@@ -14,6 +14,7 @@ export interface ChatPreview {
   time: string
   unreadCount: number
   verified?: boolean
+  pinned?: boolean
   category: ChatFilter
 }
 
@@ -132,6 +133,9 @@ export function ChatListScreen({
                   <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
                     {chat.name}
                   </span>
+                  {chat.pinned ? (
+                    <Pin aria-label="Pinned" className="size-3.5 fill-slate-400 text-slate-400" />
+                  ) : null}
                   {chat.verified ? (
                     <BadgeCheck
                       aria-label="Verified"

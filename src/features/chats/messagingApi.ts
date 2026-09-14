@@ -43,7 +43,8 @@ const summarySchema = conversationSchema.extend({
   lastMessage: messageSchema.nullable(),
   unreadCount: z.number().int().nonnegative(),
   archived: z.boolean(),
-  muted: z.boolean()
+  muted: z.boolean(),
+  pinned: z.boolean().default(false)
 })
 export type DirectoryProfile = z.infer<typeof profileSchema>
 export type ConversationSummary = z.infer<typeof summarySchema>
@@ -182,6 +183,9 @@ export const messagingApi = {
         method: 'DELETE'
       })
     ).data,
-  state: (token: string, id: string, state: { archived?: boolean; muted?: boolean }) =>
-    call(`/conversations/${id}/state`, token, { method: 'PATCH', body: JSON.stringify(state) })
+  state: (
+    token: string,
+    id: string,
+    state: { archived?: boolean; muted?: boolean; pinned?: boolean }
+  ) => call(`/conversations/${id}/state`, token, { method: 'PATCH', body: JSON.stringify(state) })
 }

@@ -8,6 +8,7 @@ import { Avatar } from '@shared/components/Surface'
 import { useToast } from '@shared/components/toastContext'
 import {
   Archive,
+  Pin,
   ArrowLeft,
   Check,
   CheckCheck,
@@ -106,6 +107,7 @@ export function ConversationPanel({
   onTyping,
   archived,
   muted,
+  pinned,
   onStateChange,
   queued,
   onRetry,
@@ -134,7 +136,8 @@ export function ConversationPanel({
   onTyping: (active: boolean) => void
   archived: boolean
   muted: boolean
-  onStateChange: (state: { archived?: boolean; muted?: boolean }) => Promise<void>
+  pinned: boolean
+  onStateChange: (state: { archived?: boolean; muted?: boolean; pinned?: boolean }) => Promise<void>
   queued: QueuedMessage[]
   onRetry: (item: QueuedMessage) => Promise<void>
   onDiscard: (id: string) => Promise<void>
@@ -412,6 +415,12 @@ export function ConversationPanel({
           items={[
             { id: 'info', label: 'Contact details', icon: Info },
             {
+              id: 'pin',
+              label: pinned ? 'Unpin chat' : 'Pin chat',
+              icon: Pin,
+              disabled: !!busy
+            },
+            {
               id: 'mute',
               label: muted ? 'Unmute notifications' : 'Mute notifications',
               icon: muted ? Volume2 : VolumeX,
@@ -429,14 +438,25 @@ export function ConversationPanel({
             else
               void run(
                 id,
-                () => onStateChange(id === 'mute' ? { muted: !muted } : { archived: !archived }),
-                id === 'mute'
-                  ? muted
-                    ? 'Notifications unmuted'
-                    : 'Notifications muted'
-                  : archived
-                    ? 'Chat unarchived'
-                    : 'Chat archived'
+                () =>
+                  onStateChange(
+                    id === 'pin'
+                      ? { pinned: !pinned }
+                      : id === 'mute'
+                        ? { muted: !muted }
+                        : { archived: !archived }
+                  ),
+                id === 'pin'
+                  ? pinned
+                    ? 'Chat unpinned'
+                    : 'Chat pinned'
+                  : id === 'mute'
+                    ? muted
+                      ? 'Notifications unmuted'
+                      : 'Notifications muted'
+                    : archived
+                      ? 'Chat unarchived'
+                      : 'Chat archived'
               )
           }}
         />

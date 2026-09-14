@@ -72,7 +72,10 @@ function normalizeDetail(detail: ConversationDetail): ConversationDetail {
 }
 
 function sortConversations(items: ConversationSummary[]) {
-  return [...items].sort((a, b) => asDate(b.updatedAt).getTime() - asDate(a.updatedAt).getTime())
+  return [...items].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+    return asDate(b.updatedAt).getTime() - asDate(a.updatedAt).getTime()
+  })
 }
 function mergeMessage(messages: Message[], message: Message) {
   const normalized = normalizeMessage(message)
@@ -545,7 +548,11 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         : current
     )
   }
-  const setConversationState = async (state: { archived?: boolean; muted?: boolean }) => {
+  const setConversationState = async (state: {
+    archived?: boolean
+    muted?: boolean
+    pinned?: boolean
+  }) => {
     if (!selectedId.current) return
     if (!serverConfirmed || !navigator.onLine)
       throw new Error('Connect to the internet to change conversation settings.')

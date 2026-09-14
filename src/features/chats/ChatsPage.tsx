@@ -47,6 +47,7 @@ export default function ChatsPage() {
             : { month: 'short', day: 'numeric' }
         ).format(item.updatedAt),
         unreadCount: item.unreadCount,
+        pinned: item.pinned,
         category: item.archived ? 'archived' : item.unreadCount ? 'unread' : 'all'
       })),
     [messaging.conversations]
@@ -187,6 +188,7 @@ export default function ChatsPage() {
             onTyping={messaging.setTyping}
             archived={current?.archived ?? false}
             muted={current?.muted ?? false}
+            pinned={current?.pinned ?? false}
             onStateChange={messaging.setConversationState}
             queued={messaging.queued.filter((item) => item.conversationId === conversationId)}
             onRetry={messaging.retry}

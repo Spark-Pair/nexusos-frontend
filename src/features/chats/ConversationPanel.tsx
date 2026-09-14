@@ -518,27 +518,46 @@ export function ConversationPanel({
                   {activeMessageMenu === message.id && !message.deletedAt ? (
                     <div
                       role="menu"
-                      className="action-menu z-30"
+                      className="message-context-menu"
                       style={{ top: '2.5rem', right: own ? 0 : 'auto', left: own ? 'auto' : 0 }}
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      {menuItems(message, own).map((item) => {
-                        const Icon = item.icon
-                        return (
+                      <div className="message-context-reactions" aria-label="Quick reactions">
+                        {reactionChoices.map((emoji) => (
                           <button
-                            key={item.id}
                             type="button"
-                            role="menuitem"
-                            disabled={item.disabled}
-                            className={`action-menu-item ${item.tone === 'danger' ? 'text-rose-600 dark:text-rose-300' : ''}`}
-                            onClick={() => handleMessageAction(message, item.id, true)}
+                            key={emoji}
+                            className="message-context-reaction"
+                            aria-label={`React ${emoji}`}
+                            disabled={!!busy}
+                            onClick={() => {
+                              setActiveMessageMenu(undefined)
+                              toggleReaction(message, emoji)
+                            }}
                           >
-                            <Icon className="size-4" aria-hidden="true" />
-                            {item.label}
+                            {emoji}
                           </button>
-                        )
-                      })}
+                        ))}
+                      </div>
+                      <div className="message-context-actions">
+                        {menuItems(message, own).map((item) => {
+                          const Icon = item.icon
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              role="menuitem"
+                              disabled={item.disabled}
+                              className={`action-menu-item ${item.tone === 'danger' ? 'text-rose-600 dark:text-rose-300' : ''}`}
+                              onClick={() => handleMessageAction(message, item.id, true)}
+                            >
+                              <Icon className="size-4" aria-hidden="true" />
+                              {item.label}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   ) : null}
                   {!message.deletedAt && message.replyToMessageId && (

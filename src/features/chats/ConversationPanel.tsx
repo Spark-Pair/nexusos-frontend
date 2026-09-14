@@ -430,7 +430,7 @@ export function ConversationPanel({
                 >
                   {!message.deletedAt &&
                     (message.body.trim() || message.imageUrls.length || message.audioUrl) && (
-                      <div className="absolute -top-3 right-2 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
+                      <div className="absolute -top-4 right-2 z-20 flex items-center rounded-full border border-slate-200 bg-white/95 p-1 opacity-0 shadow-lg shadow-slate-950/10 transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-900/95">
                         {reactionChoices.map((emoji) => (
                           <button
                             type="button"
@@ -443,70 +443,59 @@ export function ConversationPanel({
                             {emoji}
                           </button>
                         ))}
-                        <IconButton
-                          label="Copy message"
-                          icon={<Copy className="size-3.5" />}
-                          size="sm"
-                          variant="quiet"
-                          onClick={() => void copyMessage(message.body)}
-                        />
-                        <IconButton
-                          label={starred[message.id] ? 'Unstar message' : 'Star message'}
-                          icon={
-                            <Star
-                              className={
-                                'size-3.5 ' +
-                                (starred[message.id] ? 'fill-amber-400 text-amber-500' : '')
-                              }
-                            />
-                          }
-                          size="sm"
-                          variant="quiet"
-                          onClick={() =>
-                            void run(
-                              `star:${message.id}`,
-                              () => onToggleStar(message.id),
-                              starred[message.id] ? 'Removed from starred' : 'Added to starred'
-                            )
-                          }
-                        />
-                        <IconButton
-                          label="Reply to message"
-                          icon={<Reply className="size-3.5" />}
-                          size="sm"
-                          variant="quiet"
-                          onClick={() => setReplyTo(message)}
-                        />
-                        {own &&
-                          message.body.trim() &&
-                          !message.imageUrls.length &&
-                          !message.audioUrl && (
-                            <IconButton
-                              label="Edit message"
-                              icon={<Pencil className="size-3.5" />}
-                              size="sm"
-                              variant="quiet"
-                              onClick={() => {
-                                setEditing(message)
-                                setEditBody(message.body)
-                              }}
-                            />
-                          )}
-                        {own && (
-                          <IconButton
-                            label="Delete message"
-                            icon={<Trash2 className="size-3.5" />}
-                            size="sm"
-                            variant="danger"
-                            onClick={() =>
+                        <ActionMenu
+                          label="Message actions"
+                          items={[
+                            { id: 'reply', label: 'Reply', icon: Reply },
+                            {
+                              id: 'copy',
+                              label: 'Copy',
+                              icon: Copy,
+                              disabled: !message.body.trim()
+                            },
+                            {
+                              id: 'star',
+                              label: starred[message.id] ? 'Unstar' : 'Star',
+                              icon: Star
+                            },
+                            ...(own &&
+                            message.body.trim() &&
+                            !message.imageUrls.length &&
+                            !message.audioUrl
+                              ? [{ id: 'edit', label: 'Edit', icon: Pencil }]
+                              : []),
+                            ...(own
+                              ? [
+                                  {
+                                    id: 'delete',
+                                    label: 'Delete',
+                                    icon: Trash2,
+                                    tone: 'danger' as const
+                                  }
+                                ]
+                              : [])
+                          ]}
+                          onAction={(id) => {
+                            if (id === 'reply') setReplyTo(message)
+                            if (id === 'copy') void copyMessage(message.body)
+                            if (id === 'star')
+                              void run(
+                                `star:${message.id}`,
+                                () => onToggleStar(message.id),
+                                starred[message.id] ? 'Removed from starred' : 'Added to starred'
+                              )
+                            if (id === 'edit') {
+                              setEditing(message)
+                              setEditBody(message.body)
+                            }
+                            if (id === 'delete')
                               void run(
                                 `delete:${message.id}`,
                                 () => onDeleteMessage(message.id),
                                 'Message deleted'
                               )
-                            }
-                          />
-                        )}
+                          }}
+                        />
                       </div>
                     )}
                   {!message.deletedAt && message.replyToMessageId && (

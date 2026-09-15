@@ -19,7 +19,7 @@ function GoogleAction({
   loading: boolean
 }) {
   return (
-    <div className="grid justify-items-stretch gap-2">
+    <div className="grid justify-items-center gap-2">
       <GoogleLogin
         onSuccess={(response) => {
           if (!response.credential) {
@@ -38,11 +38,11 @@ function GoogleAction({
         onError={() => setError('Google sign-in was cancelled or failed.')}
         useOneTap={false}
         type="standard"
-        theme="filled_blue"
-        shape="pill"
+        theme="outline"
+        shape="rectangular"
         size="large"
         text="continue_with"
-        width="384"
+        width="300"
       />
       {loading ? (
         <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Signing in...</p>

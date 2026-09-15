@@ -115,7 +115,7 @@ export function AuthenticationFrame({
             left off.
           </p>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-500">NexusOS ? A SparkPair product</p>
+        <p className="text-xs text-slate-500 dark:text-slate-500">NexusOS - A SparkPair product</p>
       </section>
       <section className="grid place-items-center p-4 pt-16 sm:min-h-[620px] sm:p-8 lg:min-h-0 lg:p-9">
         <div className="w-full max-w-[24rem] rounded-[1.5rem] border border-slate-200 bg-white p-5 sm:p-6 lg:border-0 lg:p-0 dark:border-slate-800 dark:bg-slate-950">

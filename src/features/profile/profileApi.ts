@@ -9,17 +9,6 @@ const settingsSchema = z.object({
   allowBroadcasts: z.boolean(),
   updatedAt: z.coerce.date()
 })
-const profileSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  username: z.string(),
-  email: z.string().nullable(),
-  phone: z.string().nullable(),
-  account_kind: z.enum(['customer', 'business']),
-  settings: settingsSchema
-})
-export type Profile = z.infer<typeof profileSchema>
-
 const businessRequestSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
@@ -34,6 +23,19 @@ const businessRequestSchema = z.object({
   reviewedBy: z.string().nullable()
 })
 export type BusinessRequest = z.infer<typeof businessRequestSchema>
+
+const profileSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  username: z.string(),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  account_kind: z.enum(['customer', 'business']),
+  settings: settingsSchema,
+  business_request: businessRequestSchema.nullable().optional()
+})
+export type Profile = z.infer<typeof profileSchema>
+
 const baseUrl = (import.meta.env.VITE_API_URL as string).replace(/\/$/u, '')
 async function call(token: string, init?: RequestInit) {
   const response = await fetch(`${baseUrl}/profile`, {

@@ -4,7 +4,19 @@ import { Input, Switch, Textarea } from '@shared/components/FormControls'
 import { ThemeToggle } from '@shared/components/ThemeToggle'
 import { useToast } from '@shared/components/toastContext'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
-import { ArrowLeft, Copy, History, ListChecks, LogOut, Megaphone, UserRound } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bell,
+  BriefcaseBusiness,
+  Copy,
+  History,
+  ListChecks,
+  LogOut,
+  Megaphone,
+  Moon,
+  ShieldCheck,
+  UserRound
+} from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { profileApi, type Profile } from './profileApi'
@@ -106,16 +118,19 @@ export default function ProfilePage() {
   }
   const setting = <K extends keyof Profile['settings']>(key: K, value: Profile['settings'][K]) =>
     setProfile({ ...profile, settings: { ...profile.settings, [key]: value } })
+  const businessRequest = profile.business_request
+  const pendingBusinessRequest = businessRequest?.status === 'pending'
 
   const requestBusiness = async () => {
     if (requestingBusiness) return
     setRequestingBusiness(true)
     try {
-      await profileApi.requestBusiness(token, {
+      const request = await profileApi.requestBusiness(token, {
         business_name: businessName,
         contact_person_name: contactPersonName,
         phone: businessPhone
       })
+      setProfile({ ...profile, business_request: request })
       setBusinessName('')
       setContactPersonName('')
       setBusinessPhone('')
@@ -192,43 +207,61 @@ export default function ProfilePage() {
         </aside>
         <section className="app-panel p-4 sm:p-6 lg:p-8">
           <div className="mb-6">
-            <h2 className="text-lg font-bold">Account details</h2>
+            <h2 className="text-lg font-bold">Settings</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Keep this information clear for people who message you.
+              Manage your profile, privacy, appearance and account access from one place.
             </p>
           </div>
           <div className="grid gap-5">
-            <Input
-              label="Name"
-              value={profile.name}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-            />
-            <Input
-              label="Username"
-              value={profile.username}
-              onChange={(e) => setProfile({ ...profile, username: e.target.value.toLowerCase() })}
-            />
-            <Textarea
-              label="About"
-              optional
-              maxLength={240}
-              value={profile.settings.bio}
-              onChange={(e) => setting('bio', e.target.value)}
-            />
-            <Input
-              label="Language"
-              value={profile.settings.language}
-              onChange={(e) =>
-                setting('language', e.target.value as Profile['settings']['language'])
-              }
-              hint="Use en, ur, or roman-ur"
-            />
+            <section className="grid gap-4 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-[var(--color-primary)] dark:bg-emerald-950/40">
+                  <UserRound className="size-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold">Profile</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    This is how people see you inside chats.
+                  </p>
+                </div>
+              </div>
+              <Input
+                label="Name"
+                value={profile.name}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              />
+              <Input
+                label="Username"
+                value={profile.username}
+                onChange={(e) => setProfile({ ...profile, username: e.target.value.toLowerCase() })}
+              />
+              <Textarea
+                label="About"
+                optional
+                maxLength={240}
+                value={profile.settings.bio}
+                onChange={(e) => setting('bio', e.target.value)}
+              />
+              <Input
+                label="Language"
+                value={profile.settings.language}
+                onChange={(e) =>
+                  setting('language', e.target.value as Profile['settings']['language'])
+                }
+                hint="Use en, ur, or roman-ur"
+              />
+            </section>
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
-              <div>
-                <h2 className="font-bold">Appearance</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Switch the app between light and dark mode.
-                </p>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                  <Moon className="size-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold">Appearance</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Switch the app between light and dark mode.
+                  </p>
+                </div>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -238,7 +271,17 @@ export default function ProfilePage() {
               </div>
             </section>
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
-              <h2 className="font-bold">Privacy</h2>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                  <ShieldCheck className="size-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold">Privacy</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Control read signals and broadcast delivery.
+                  </p>
+                </div>
+              </div>
               <Switch
                 label="Show last seen"
                 checked={profile.settings.showLastSeen}
@@ -258,14 +301,23 @@ export default function ProfilePage() {
 
             {profile.account_kind === 'customer' ? (
               <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-                <div>
-                  <h2 className="font-bold">Be a Business</h2>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    Business accounts can invite customers, organize broadcast lists, publish
-                    updates into customer chats and manage a business inbox. Send a request and an
-                    admin will call your contact person to verify details before upgrading this
-                    account.
-                  </p>
+                <div className="flex items-start gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white text-[var(--color-primary)] dark:bg-emerald-950/70">
+                    <BriefcaseBusiness className="size-5" />
+                  </span>
+                  <div>
+                    <h2 className="font-bold">Be a Business</h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Business accounts can invite customers, organize broadcast lists, publish
+                      updates into customer chats and manage a business inbox. Admins call your
+                      contact person before upgrading this account.
+                    </p>
+                    {businessRequest ? (
+                      <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-[var(--color-primary)] dark:bg-slate-950/50">
+                        Latest request: {businessRequest.status} ? {businessRequest.businessName}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="grid gap-3">
                   <Input
@@ -291,20 +343,26 @@ export default function ProfilePage() {
                   <Button
                     type="button"
                     loading={requestingBusiness}
+                    disabled={pendingBusinessRequest}
                     className="justify-center sm:w-fit"
                     onClick={() => void requestBusiness()}
                   >
-                    Send business request
+                    {pendingBusinessRequest ? 'Request pending' : 'Send business request'}
                   </Button>
                 </div>
               </section>
             ) : null}
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
-              <div>
-                <h2 className="font-bold">Device notifications</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Get browser notifications for new messages and broadcasts on this device.
-                </p>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  <Bell className="size-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold">Device notifications</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Get browser notifications for new messages and broadcasts on this device.
+                  </p>
+                </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -333,11 +391,16 @@ export default function ProfilePage() {
               ) : null}
             </section>
             <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
-              <div>
-                <h2 className="font-bold">Session</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Sign out of NexusOS on this device from settings.
-                </p>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                  <LogOut className="size-5" />
+                </span>
+                <div>
+                  <h2 className="font-bold">Session</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Sign out of NexusOS on this device from settings.
+                  </p>
+                </div>
               </div>
               <Button
                 type="button"

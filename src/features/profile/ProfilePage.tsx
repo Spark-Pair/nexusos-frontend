@@ -22,10 +22,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { profileApi, type Profile } from './profileApi'
 import { authRoutes } from '@/features/authentication/authRoutes'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
+import { offlineStore } from '@/features/chats/offlineStore'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 
 export default function ProfilePage() {
-  const { session, signOut } = useAuthSession()
+  const { session, signOut, serverConfirmed } = useAuthSession()
   const token = session!.token
   const toast = useToast()
   const navigate = useNavigate()
@@ -61,11 +63,19 @@ export default function ProfilePage() {
     ) : null
   const load = useCallback(() => {
     setNotice('')
-    return profileApi
-      .get(token)
-      .then(setProfile)
+    return offlineStore
+      .read<Profile>(session!.data.id, 'profile')
+      .then((cached) => {
+        if (cached) setProfile(cached)
+        if (!navigator.onLine || !serverConfirmed) return cached
+        return profileApi.get(token).then((next) => {
+          setProfile(next)
+          void offlineStore.save(session!.data.id, 'profile', next).catch(() => undefined)
+          return next
+        })
+      })
       .catch((e: unknown) => setNotice(e instanceof Error ? e.message : 'Unable to load profile.'))
-  }, [token])
+  }, [serverConfirmed, session, token])
   useEffect(() => {
     void load()
   }, [load])
@@ -94,7 +104,7 @@ export default function ProfilePage() {
     setSaving(true)
     setNotice('')
     try {
-      await profileApi.update(session!.token, {
+      const value = {
         name: profile.name,
         username: profile.username,
         bio: profile.settings.bio,
@@ -102,7 +112,15 @@ export default function ProfilePage() {
         show_last_seen: profile.settings.showLastSeen,
         allow_read_receipts: profile.settings.allowReadReceipts,
         allow_broadcasts: profile.settings.allowBroadcasts
-      })
+      }
+      await offlineStore.save(session!.data.id, 'profile', profile)
+      if (!navigator.onLine || !serverConfirmed) {
+        await queueOfflineAction(session!.data.id, 'profile.update', value)
+        setNotice('Profile saved on this device. It will sync when internet returns.')
+        return
+      }
+      await profileApi.update(session!.token, value)
+      void syncOfflineActions(session!.data.id, token).catch(() => undefined)
       setNotice('Profile saved.')
       toast({ title: 'Profile saved', tone: 'success' })
     } catch (e) {
@@ -125,11 +143,24 @@ export default function ProfilePage() {
     if (requestingBusiness) return
     setRequestingBusiness(true)
     try {
-      const request = await profileApi.requestBusiness(token, {
+      const value = {
         business_name: businessName,
         contact_person_name: contactPersonName,
         phone: businessPhone
-      })
+      }
+      if (!navigator.onLine || !serverConfirmed) {
+        await queueOfflineAction(session!.data.id, 'businessRequest.create', value)
+        setBusinessName('')
+        setContactPersonName('')
+        setBusinessPhone('')
+        toast({
+          title: 'Business request saved',
+          description: 'It will be sent to admins when internet returns.',
+          tone: 'success'
+        })
+        return
+      }
+      const request = await profileApi.requestBusiness(token, value)
       setProfile({ ...profile, business_request: request })
       setBusinessName('')
       setContactPersonName('')

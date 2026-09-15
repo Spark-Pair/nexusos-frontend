@@ -10,6 +10,7 @@ import {
   type DirectoryProfile,
   type Message
 } from './messagingApi'
+import { queueOfflineAction, syncOfflineActions } from './offlineActions'
 import { offlineStore, type QueuedMessage } from './offlineStore'
 import { syncOutbox } from './outbox'
 import { broadcastApi } from '@/features/broadcasts/broadcastApi'
@@ -234,7 +235,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     [actorId, serverConfirmed, token]
   )
   const synchronize = useCallback(async () => {
-    if (navigator.onLine && serverConfirmed) await syncOutbox(actorId, token).catch(() => undefined)
+    if (navigator.onLine && serverConfirmed) {
+      await syncOutbox(actorId, token).catch(() => undefined)
+      await syncOfflineActions(actorId, token).catch(() => undefined)
+    }
     await loadQueue()
     await refresh()
     if (selectedId.current) await open(selectedId.current).catch(() => undefined)
@@ -552,8 +556,17 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     conversationId: string,
     state: { archived?: boolean; muted?: boolean; pinned?: boolean }
   ) => {
-    if (!serverConfirmed || !navigator.onLine)
-      throw new Error('Connect to the internet to change conversation settings.')
+    if (!serverConfirmed || !navigator.onLine) {
+      setConversations((items) =>
+        sortConversations(
+          items.map((conversation) =>
+            conversation.id === conversationId ? { ...conversation, ...state } : conversation
+          )
+        )
+      )
+      await queueOfflineAction(actorId, 'conversation.state', { id: conversationId, value: state })
+      return
+    }
     await messagingApi.state(token, conversationId, state)
     await refresh()
   }
@@ -566,8 +579,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     await setConversationStateFor(selectedId.current, state)
   }
   const reportBroadcast = async (id: string) => {
-    if (!serverConfirmed || !navigator.onLine)
-      throw new Error('Connect to the internet to report a broadcast.')
+    if (!serverConfirmed || !navigator.onLine) {
+      await queueOfflineAction(actorId, 'broadcast.report', { id })
+      return
+    }
     await broadcastApi.state(token, id, { reported: true })
   }
   return {

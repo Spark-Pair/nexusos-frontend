@@ -6,12 +6,28 @@ import {
   precacheAndRoute
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
     denylist: [/^\/api(?:\/|$)/, /^\/uploads\//, /^\/socket.io\//]
   })
+)
+registerRoute(
+  ({ request, url }) =>
+    request.method === 'GET' &&
+    url.pathname.startsWith('/api/') &&
+    !url.pathname.includes('/auth/'),
+  new NetworkFirst({ cacheName: 'nexusos-api-v1', networkTimeoutSeconds: 3 })
+)
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({ cacheName: 'nexusos-media-v1' })
+)
+registerRoute(
+  ({ request }) => ['style', 'script', 'font'].includes(request.destination),
+  new StaleWhileRevalidate({ cacheName: 'nexusos-assets-v1' })
 )
 clientsClaim()
 self.addEventListener('install', () => self.skipWaiting())

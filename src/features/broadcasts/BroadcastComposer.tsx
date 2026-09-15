@@ -9,6 +9,7 @@ import {
   type BroadcastDraft,
   type BroadcastList
 } from './broadcastApi'
+import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
 
 function LocalImage({ file }: { file: File }) {
   const [url, setUrl] = useState('')
@@ -28,6 +29,8 @@ function LocalImage({ file }: { file: File }) {
 
 export function BroadcastComposer({
   token,
+  actorId,
+  serverConfirmed,
   lists,
   selected,
   onSelect,
@@ -37,6 +40,8 @@ export function BroadcastComposer({
   onPublished
 }: {
   token: string
+  actorId: string
+  serverConfirmed: boolean
   lists: BroadcastList[]
   selected: string[]
   onSelect: (ids: string[]) => void
@@ -65,45 +70,79 @@ export function BroadcastComposer({
     setError('')
     setNotice('')
     try {
-      const imageUrls = [...urls, ...(files.length ? await broadcastApi.upload(token, files) : [])]
+      const offline = !navigator.onLine || !serverConfirmed
+      const pendingImages = files.map((file) => ({ name: file.name, type: file.type, blob: file }))
+      const imageUrls = offline
+        ? urls
+        : [...urls, ...(files.length ? await broadcastApi.upload(token, files) : [])]
       setUrls(imageUrls)
-      setFiles([])
+      if (!offline) setFiles([])
       if (mode === 'draft') {
         const id = draftId || crypto.randomUUID()
         setDraftId(id)
-        await broadcastApi.saveDraft(token, id, {
+        const value = {
           list_id: selected[0] ?? null,
           title: title.trim(),
           body: body.trim(),
           image_urls: imageUrls
-        })
+        }
+        if (offline)
+          await queueOfflineAction(actorId, 'broadcastDraft.save', {
+            id,
+            ...value,
+            pending_images: pendingImages
+          })
+        else await broadcastApi.saveDraft(token, id, value)
         setDraftId(id)
-        setNotice('Draft saved.')
-        toast({ title: 'Draft saved', tone: 'success' })
+        setNotice(
+          offline
+            ? 'Draft saved on this device. It will sync with images when internet returns.'
+            : 'Draft saved.'
+        )
+        toast({ title: offline ? 'Draft saved offline' : 'Draft saved', tone: 'success' })
         onSaved()
       } else {
-        await broadcastApi.publish(token, {
+        const value = {
           list_ids: selected,
           title: title.trim(),
           body: body.trim(),
           image_urls: imageUrls,
           ...(scheduledFor ? { scheduled_for: new Date(scheduledFor).toISOString() } : {})
-        })
+        }
+        if (offline)
+          await queueOfflineAction(actorId, 'broadcast.publish', {
+            ...value,
+            pending_images: pendingImages
+          })
+        else await broadcastApi.publish(token, value)
         // Publishing has succeeded. A draft cleanup failure must never encourage a duplicate send.
         setTitle('')
         setBody('')
         setUrls([])
+        setFiles([])
         setDraftId('')
         setScheduledFor('')
-        setNotice(scheduledFor ? 'Broadcast scheduled.' : 'Broadcast published.')
+        setNotice(
+          offline
+            ? 'Broadcast saved on this device. It will sync with images when internet returns.'
+            : scheduledFor
+              ? 'Broadcast scheduled.'
+              : 'Broadcast published.'
+        )
         toast({
-          title: scheduledFor ? 'Broadcast scheduled' : 'Broadcast published',
-          description: scheduledFor
-            ? 'It will auto-send at the scheduled time.'
-            : 'Added to eligible customer chats.',
+          title: offline
+            ? 'Broadcast saved offline'
+            : scheduledFor
+              ? 'Broadcast scheduled'
+              : 'Broadcast published',
+          description: offline
+            ? 'Images and message will upload automatically after reconnect.'
+            : scheduledFor
+              ? 'It will auto-send at the scheduled time.'
+              : 'Added to eligible customer chats.',
           tone: 'success'
         })
-        if (draftId)
+        if (draftId && navigator.onLine && serverConfirmed)
           await broadcastApi
             .removeDraft(token, draftId)
             .catch(() =>
@@ -111,6 +150,7 @@ export function BroadcastComposer({
                 'Broadcast published. The old draft could not be removed; delete it from History.'
               )
             )
+        void syncOfflineActions(actorId, token).catch(() => undefined)
         onPublished()
       }
     } catch (cause) {

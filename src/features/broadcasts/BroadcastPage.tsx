@@ -18,6 +18,8 @@ import {
 import { BroadcastComposer } from './BroadcastComposer'
 import { BroadcastListEditor } from './BroadcastListEditor'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
+import { offlineStore } from '@/features/chats/offlineStore'
 
 const views = [
   { id: 'lists', label: 'Lists', icon: ListChecks },
@@ -28,7 +30,7 @@ const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Unable to load data. Please try again.'
 
 export default function BroadcastPage() {
-  const { session } = useAuthSession()
+  const { session, serverConfirmed } = useAuthSession()
   const toast = useToast()
   const token = session!.token
   const [params, setParams] = useSearchParams()
@@ -57,6 +59,22 @@ export default function BroadcastPage() {
   const load = useCallback(async () => {
     const version = ++generation.current
     setLoading(true)
+    const cached = await Promise.all([
+      offlineStore.read<BroadcastList[]>(session!.data.id, 'broadcast:lists'),
+      offlineStore.read<BroadcastCustomer[]>(session!.data.id, 'broadcast:customers'),
+      offlineStore.read<Broadcast[]>(session!.data.id, 'broadcast:history'),
+      offlineStore.read<BroadcastDraft[]>(session!.data.id, 'broadcast:drafts')
+    ]).catch(() => [])
+    if (version !== generation.current) return
+    if (cached[0]) setLists(cached[0])
+    if (cached[1]) setCustomers(cached[1])
+    if (cached[2]) setItems(cached[2])
+    if (cached[3]) setDrafts(cached[3])
+    if (!navigator.onLine || !serverConfirmed) {
+      setErrors({})
+      setLoading(false)
+      return
+    }
     const results = await Promise.allSettled([
       broadcastApi.lists(token),
       broadcastApi.customers(token),
@@ -66,17 +84,33 @@ export default function BroadcastPage() {
     if (version !== generation.current) return
     const [nextLists, nextCustomers, nextItems, nextDrafts] = results
     const failures: Record<string, string> = {}
-    if (nextLists.status === 'fulfilled') setLists(nextLists.value)
-    else failures.lists = message(nextLists.reason)
-    if (nextCustomers.status === 'fulfilled') setCustomers(nextCustomers.value)
-    else failures.customers = message(nextCustomers.reason)
-    if (nextItems.status === 'fulfilled') setItems(nextItems.value)
-    else failures.history = message(nextItems.reason)
-    if (nextDrafts.status === 'fulfilled') setDrafts(nextDrafts.value)
-    else failures.drafts = message(nextDrafts.reason)
+    if (nextLists.status === 'fulfilled') {
+      setLists(nextLists.value)
+      void offlineStore
+        .save(session!.data.id, 'broadcast:lists', nextLists.value)
+        .catch(() => undefined)
+    } else failures.lists = message(nextLists.reason)
+    if (nextCustomers.status === 'fulfilled') {
+      setCustomers(nextCustomers.value)
+      void offlineStore
+        .save(session!.data.id, 'broadcast:customers', nextCustomers.value)
+        .catch(() => undefined)
+    } else failures.customers = message(nextCustomers.reason)
+    if (nextItems.status === 'fulfilled') {
+      setItems(nextItems.value)
+      void offlineStore
+        .save(session!.data.id, 'broadcast:history', nextItems.value)
+        .catch(() => undefined)
+    } else failures.history = message(nextItems.reason)
+    if (nextDrafts.status === 'fulfilled') {
+      setDrafts(nextDrafts.value)
+      void offlineStore
+        .save(session!.data.id, 'broadcast:drafts', nextDrafts.value)
+        .catch(() => undefined)
+    } else failures.drafts = message(nextDrafts.reason)
     setErrors(failures)
     setLoading(false)
-  }, [token])
+  }, [serverConfirmed, session, token])
   const invalidateRequests = useCallback(() => {
     generation.current++
   }, [])
@@ -90,10 +124,31 @@ export default function BroadcastPage() {
   }, [])
   const changeView = (next: string) => setParams({ view: next })
   const saveList = async (name: string, ids: string[]) => {
+    if (!navigator.onLine || !serverConfirmed) {
+      const saved: BroadcastList = {
+        id: editor?.id ?? crypto.randomUUID(),
+        businessId: session!.data.id,
+        name,
+        customerIds: ids,
+        createdAt: editor?.createdAt ?? new Date(),
+        updatedAt: new Date()
+      }
+      setLists((current) => [saved, ...current.filter((list) => list.id !== saved.id)])
+      await queueOfflineAction(session!.data.id, 'broadcastList.save', {
+        id: editor?.id,
+        name,
+        customer_ids: ids
+      })
+      setSelected([saved.id])
+      setEditor(undefined)
+      setNotice('List saved on this device. It will sync when internet returns.')
+      return
+    }
     const saved = editor
       ? await broadcastApi.updateList(token, editor.id, name, ids)
       : await broadcastApi.createList(token, name, ids)
     setLists((current) => [saved, ...current.filter((list) => list.id !== saved.id)])
+    void syncOfflineActions(session!.data.id, token).catch(() => undefined)
     setSelected([saved.id])
     setEditor(undefined)
     setNotice(editor ? 'Broadcast list updated.' : 'Broadcast list created.')
@@ -106,7 +161,9 @@ export default function BroadcastPage() {
     setDeleteError('')
     try {
       if (deleting.kind === 'list') {
-        await broadcastApi.removeList(token, deleting.id)
+        if (!navigator.onLine || !serverConfirmed)
+          await queueOfflineAction(session!.data.id, 'broadcastList.delete', { id: deleting.id })
+        else await broadcastApi.removeList(token, deleting.id)
         setLists((current) => current.filter((list) => list.id !== deleting.id))
         setItems((current) => current.filter((item) => item.listId !== deleting.id))
         setDrafts((current) =>
@@ -115,7 +172,9 @@ export default function BroadcastPage() {
         if (selected.includes(deleting.id))
           setSelected((current) => current.filter((id) => id !== deleting.id))
       } else {
-        await broadcastApi.removeDraft(token, deleting.id)
+        if (!navigator.onLine || !serverConfirmed)
+          await queueOfflineAction(session!.data.id, 'broadcastDraft.delete', { id: deleting.id })
+        else await broadcastApi.removeDraft(token, deleting.id)
         setDrafts((current) => current.filter((item) => item.id !== deleting.id))
         if (draft?.id === deleting.id) {
           setDraft(null)
@@ -294,6 +353,8 @@ export default function BroadcastPage() {
           <BroadcastComposer
             key={composerVersion}
             token={token}
+            actorId={session!.data.id}
+            serverConfirmed={serverConfirmed}
             lists={lists}
             selected={selected}
             onSelect={setSelected}

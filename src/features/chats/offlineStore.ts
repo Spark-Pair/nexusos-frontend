@@ -29,6 +29,35 @@ export interface StarredMessage {
   messageId: string
   createdAt: number
 }
+export type OfflineActionKind =
+  | 'profile.update'
+  | 'businessRequest.create'
+  | 'broadcastList.save'
+  | 'broadcastList.delete'
+  | 'broadcastDraft.save'
+  | 'broadcastDraft.delete'
+  | 'broadcast.publish'
+  | 'broadcast.state'
+  | 'broadcast.mute'
+  | 'conversation.state'
+  | 'broadcast.report'
+
+export interface QueuedBroadcastImage {
+  name: string
+  type: string
+  blob: Blob
+}
+
+export interface QueuedAction {
+  id: string
+  actorId: string
+  kind: OfflineActionKind
+  payload: unknown
+  createdAt: Date
+  status: 'queued' | 'syncing' | 'failed'
+  error?: string
+}
+
 export interface QueuedMessage {
   id: string
   actorId: string
@@ -50,6 +79,7 @@ class InboxDatabase extends Dexie {
   identities!: Table<Identity, string>
   outbox!: Table<QueuedMessage, string>
   starred!: Table<StarredMessage, string>
+  actions!: Table<QueuedAction, string>
   constructor() {
     super('nexusos-inbox-v1')
     this.version(1).stores({
@@ -62,6 +92,13 @@ class InboxDatabase extends Dexie {
       identities: 'id',
       outbox: 'id,actorId,[actorId+conversationId]',
       starred: 'key,actorId,[actorId+conversationId]'
+    })
+    this.version(3).stores({
+      snapshots: 'key,actorId',
+      identities: 'id',
+      outbox: 'id,actorId,[actorId+conversationId]',
+      starred: 'key,actorId,[actorId+conversationId]',
+      actions: 'id,actorId,kind,status,createdAt'
     })
   }
 }
@@ -113,6 +150,21 @@ export const offlineStore = {
   async remove(id: string) {
     await db.outbox.delete(id)
   },
+  async enqueueAction(value: QueuedAction) {
+    await db.actions.put(value)
+  },
+  async queuedActions(actorId: string) {
+    return db.actions.where('actorId').equals(actorId).sortBy('createdAt')
+  },
+  async updateAction(id: string, value: Partial<QueuedAction>) {
+    await db.actions.update(id, value)
+  },
+  async failAction(id: string, error: string) {
+    await db.actions.update(id, { status: 'failed', error })
+  },
+  async removeAction(id: string) {
+    await db.actions.delete(id)
+  },
   async starred(actorId: string, conversationId: string) {
     return db.starred.where('[actorId+conversationId]').equals([actorId, conversationId]).toArray()
   },
@@ -127,11 +179,20 @@ export const offlineStore = {
     return true
   },
   async purge(actorId: string) {
-    await db.transaction('rw', db.snapshots, db.identities, db.outbox, db.starred, async () => {
-      await db.snapshots.where('actorId').equals(actorId).delete()
-      await db.identities.delete(actorId)
-      await db.outbox.where('actorId').equals(actorId).delete()
-      await db.starred.where('actorId').equals(actorId).delete()
-    })
+    await db.transaction(
+      'rw',
+      db.snapshots,
+      db.identities,
+      db.outbox,
+      db.starred,
+      db.actions,
+      async () => {
+        await db.snapshots.where('actorId').equals(actorId).delete()
+        await db.identities.delete(actorId)
+        await db.outbox.where('actorId').equals(actorId).delete()
+        await db.starred.where('actorId').equals(actorId).delete()
+        await db.actions.where('actorId').equals(actorId).delete()
+      }
+    )
   }
 }

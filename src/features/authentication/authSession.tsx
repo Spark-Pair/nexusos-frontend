@@ -9,7 +9,9 @@ import {
   type PropsWithChildren
 } from 'react'
 import { authApi, type AuthSession } from './authApi'
+import { syncOfflineActions } from '@/features/chats/offlineActions'
 import { offlineStore } from '@/features/chats/offlineStore'
+import { syncOutbox } from '@/features/chats/outbox'
 
 type AuthStatus = 'restoring' | 'anonymous' | 'authenticated'
 interface AuthSessionValue {
@@ -62,7 +64,11 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       try {
         if (!navigator.onLine) throw new Error('Offline')
         const next = await authApi.restore(token)
-        if (active && localStorage.getItem(tokenKey) === token) setSession(next)
+        if (active && localStorage.getItem(tokenKey) === token) {
+          setSession(next)
+          void syncOutbox(next.data.id, token).catch(() => undefined)
+          void syncOfflineActions(next.data.id, token).catch(() => undefined)
+        }
       } catch (cause) {
         confirmedAt.current = 0
         if (!active || localStorage.getItem(tokenKey) !== token) return
@@ -90,6 +96,12 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
     const reconnect = () => {
       void restore()
+      const token = localStorage.getItem(tokenKey)
+      const actor = localStorage.getItem(actorKey)
+      if (token && actor) {
+        void syncOutbox(actor, token).catch(() => undefined)
+        void syncOfflineActions(actor, token).catch(() => undefined)
+      }
     }
     const disconnect = () => {
       confirmedAt.current = 0

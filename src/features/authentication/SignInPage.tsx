@@ -19,7 +19,7 @@ function GoogleAction({
   loading: boolean
 }) {
   return (
-    <div className="grid justify-items-start gap-2">
+    <div className="grid justify-items-stretch gap-2">
       <GoogleLogin
         onSuccess={(response) => {
           if (!response.credential) {
@@ -42,12 +42,10 @@ function GoogleAction({
         shape="pill"
         size="large"
         text="continue_with"
-        width="320"
+        width="384"
       />
       {loading ? (
-        <p className="text-center text-xs font-medium text-slate-500 dark:text-slate-400">
-          Signing in...
-        </p>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Signing in...</p>
       ) : null}
     </div>
   )
@@ -66,9 +64,9 @@ function SignInForm() {
     <AuthenticationScreen
       eyebrow="Welcome back"
       title="Sign in with Google"
-      description="Use your Google account. If this is your first time, NexusOS creates your customer account automatically."
+      description="Use Google to open your workspace. New customer accounts are created automatically."
       footer={
-        <p className="text-center text-sm leading-6 text-slate-500 dark:text-slate-400">
+        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
           Business access is requested from settings after sign in.
         </p>
       }

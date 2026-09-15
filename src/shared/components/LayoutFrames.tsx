@@ -96,9 +96,9 @@ export function AuthenticationFrame({
   toolbar
 }: PropsWithChildren<{ toolbar?: ReactNode }>) {
   return (
-    <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white lg:min-h-[620px] lg:grid-cols-[0.9fr_1.1fr] dark:border-slate-800 dark:bg-slate-950">
+    <div className="relative grid w-full max-w-[960px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white lg:min-h-[580px] lg:grid-cols-[0.95fr_1.05fr] dark:border-slate-800 dark:bg-slate-950">
       {toolbar ? <div className="absolute right-4 top-4 z-10">{toolbar}</div> : null}
-      <section className="hidden border-r border-slate-200 bg-slate-50/70 p-10 lg:flex lg:flex-col dark:border-slate-800 dark:bg-slate-900/35">
+      <section className="hidden border-r border-slate-200 bg-slate-50/70 p-9 lg:flex lg:flex-col dark:border-slate-800 dark:bg-slate-900/35">
         <div className="flex items-center gap-3">
           <span className="brand-mark">N</span>
           <div>
@@ -107,7 +107,7 @@ export function AuthenticationFrame({
           </div>
         </div>
         <div className="my-auto max-w-md">
-          <h2 className="text-4xl font-bold leading-tight tracking-tight text-slate-950 dark:text-white">
+          <h2 className="text-[2.45rem] font-bold leading-tight tracking-tight text-slate-950 dark:text-white">
             Messages, broadcasts and customers in one workspace.
           </h2>
           <p className="mt-5 text-sm leading-7 text-slate-500 dark:text-slate-400">
@@ -117,8 +117,8 @@ export function AuthenticationFrame({
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-500">NexusOS ? A SparkPair product</p>
       </section>
-      <section className="grid place-items-center p-4 pt-16 sm:min-h-[640px] sm:p-8 lg:min-h-0 lg:p-10">
-        <div className="w-full max-w-[26rem] rounded-[1.5rem] border border-slate-200 bg-white p-5 sm:p-6 lg:border-0 lg:p-0 dark:border-slate-800 dark:bg-slate-950">
+      <section className="grid place-items-center p-4 pt-16 sm:min-h-[620px] sm:p-8 lg:min-h-0 lg:p-9">
+        <div className="w-full max-w-[24rem] rounded-[1.5rem] border border-slate-200 bg-white p-5 sm:p-6 lg:border-0 lg:p-0 dark:border-slate-800 dark:bg-slate-950">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <span className="brand-mark">N</span>
             <div>

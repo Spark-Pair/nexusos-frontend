@@ -96,41 +96,54 @@ export function AuthenticationFrame({
   toolbar
 }: PropsWithChildren<{ toolbar?: ReactNode }>) {
   return (
-    <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-300 bg-white lg:min-h-[620px] lg:grid-cols-[0.95fr_1.05fr] dark:border-slate-700 dark:bg-slate-900">
+    <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:min-h-[660px] lg:grid-cols-[1.05fr_0.95fr] dark:border-white/10 dark:bg-slate-950/90 dark:shadow-none">
+      <div className="pointer-events-none absolute -left-28 -top-28 size-72 rounded-full bg-emerald-100 blur-3xl dark:bg-emerald-950/40" />
+      <div className="pointer-events-none absolute -bottom-36 right-10 size-80 rounded-full bg-blue-100 blur-3xl dark:bg-blue-950/30" />
       {toolbar ? <div className="absolute right-4 top-4 z-10">{toolbar}</div> : null}
-      <section className="hidden border-r border-slate-200 bg-slate-50/80 p-10 lg:flex lg:flex-col dark:border-slate-800 dark:bg-slate-950/60">
+      <section className="relative hidden border-r border-slate-200/80 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-10 lg:flex lg:flex-col dark:border-white/10 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950/30">
         <div className="flex items-center gap-3">
-          <span className="brand-mark">N</span>
+          <span className="brand-mark shadow-sm">N</span>
           <div>
             <p className="text-sm font-bold">NexusOS</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">Messaging workspace</p>
           </div>
         </div>
-        <div className="my-auto">
-          <p className="max-w-md text-4xl font-bold tracking-tight">
-            Messages, broadcasts and customer chats in one quiet workspace.
+        <div className="my-auto max-w-xl">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]">
+            SparkPair workspace
+          </p>
+          <h2 className="mt-5 text-4xl font-black leading-tight tracking-[-0.04em] text-slate-950 dark:text-white xl:text-5xl">
+            Business chats, broadcasts and customers in one calm inbox.
+          </h2>
+          <p className="mt-5 max-w-md text-sm leading-7 text-slate-600 dark:text-slate-300">
+            Sign in once, keep your conversations available on this device, and let NexusOS sync
+            your updates when the internet comes back.
           </p>
           <div className="mt-8 grid gap-3">
             {[
-              'Customer signup stays simple.',
-              'Business accounts come from the admin panel.',
-              'Chats and broadcasts land in the same inbox.'
+              'Google-only sign in for normal users.',
+              'Offline PWA keeps recent chats ready.',
+              'Business access is requested after login.'
             ].map((item) => (
               <div
                 key={item}
-                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium dark:border-slate-800 dark:bg-slate-900"
+                className="flex items-center gap-3 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
               >
-                <span className="size-2 rounded-full bg-blue-600" aria-hidden="true" />
+                <span className="grid size-6 place-items-center rounded-full bg-emerald-100 text-[11px] text-[var(--color-primary)] dark:bg-emerald-950">
+                  ?
+                </span>
                 {item}
               </div>
             ))}
           </div>
         </div>
-        <p className="text-xs text-slate-500">NexusOS - A SparkPair product</p>
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          NexusOS ? A SparkPair product
+        </p>
       </section>
-      <section className="grid place-items-center p-4 pt-16 sm:min-h-[680px] sm:p-10 lg:min-h-0">
-        <div className="w-full max-w-[28rem] rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 lg:border-0 lg:bg-transparent lg:p-0 dark:border-slate-800 dark:bg-slate-900 dark:lg:bg-transparent">
-          <div className="mb-7 flex items-center gap-3 lg:hidden">
+      <section className="relative grid place-items-center p-3 pt-16 sm:min-h-[700px] sm:p-8 lg:min-h-0 lg:p-10">
+        <div className="w-full max-w-[29rem] rounded-[1.75rem] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none dark:border-white/10 dark:bg-slate-900/90 dark:lg:bg-transparent">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
             <span className="brand-mark">N</span>
             <div>
               <p className="text-sm font-bold">NexusOS</p>

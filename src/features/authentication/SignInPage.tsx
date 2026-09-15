@@ -19,7 +19,7 @@ function GoogleAction({
   loading: boolean
 }) {
   return (
-    <div className="grid gap-3 rounded-[var(--radius-control)] border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+    <div className="grid gap-3 rounded-[var(--radius-control)] border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-[#111815]">
       <GoogleLogin
         onSuccess={(response) => {
           if (!response.credential) {
@@ -37,6 +37,9 @@ function GoogleAction({
         }}
         onError={() => setError('Google sign-in was cancelled or failed.')}
         useOneTap={false}
+        theme="filled_black"
+        shape="pill"
+        size="large"
         width="300"
       />
       {loading ? (

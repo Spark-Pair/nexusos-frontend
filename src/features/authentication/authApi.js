@@ -26,13 +26,6 @@ const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/u, '')
 export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 const deviceName = `NexusOS Prototype (${navigator.platform || 'browser'})`
 
-export class AuthApiError extends Error {
-  constructor(message, status) {
-    super(message)
-    this.status = status
-  }
-}
-
 async function request(path, body, token) {
   if (!apiUrl) throw new Error('The NexusOS API URL is not configured.')
 
@@ -79,8 +72,7 @@ export const authApi = {
     const response = await fetch(`${apiUrl}/auth/me`, {
       headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     })
-    if (!response.ok)
-      throw new AuthApiError('Your session has expired. Please sign in again.', response.status)
+    if (!response.ok) throw new Error('Your session has expired. Please sign in again.')
     const restored = restoredSessionSchema.parse(await response.json())
     return { ...restored, token }
   },

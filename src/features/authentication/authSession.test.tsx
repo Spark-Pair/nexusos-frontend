@@ -66,6 +66,30 @@ describe('authenticated session lifecycle', () => {
     expect(localStorage.getItem('nexusos-session-token')).toBeNull()
   })
 
+  it('keeps a cached session when restore cannot reach the server', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    const { unmount } = render(
+      <AuthSessionProvider>
+        <SessionProbe />
+      </AuthSessionProvider>
+    )
+    await waitFor(() => expect(screen.getByText('anonymous')).toBeVisible())
+    screen.getByRole('button', { name: 'Set session' }).click()
+    await waitFor(() => expect(screen.getByText('Test User')).toBeVisible())
+    unmount()
+
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: false })
+    render(
+      <AuthSessionProvider>
+        <SessionProbe />
+      </AuthSessionProvider>
+    )
+
+    expect(await screen.findByText('Test User')).toBeVisible()
+    expect(screen.getByText('authenticated')).toBeVisible()
+    expect(localStorage.getItem('nexusos-session-token')).toBe('new-token')
+  })
+
   it('clears local session state during logout', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
     render(

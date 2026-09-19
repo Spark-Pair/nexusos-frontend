@@ -1,30 +1,43 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { authApi } from './authApi.js'
+import { AuthApiError, authApi } from './authApi.js'
 
 const tokenKey = 'nexusos-session-token'
 const AuthSessionContext = createContext(null)
 
+function storedToken() {
+  const token = localStorage.getItem(tokenKey) ?? sessionStorage.getItem(tokenKey)
+  if (token && !localStorage.getItem(tokenKey)) {
+    localStorage.setItem(tokenKey, token)
+    sessionStorage.removeItem(tokenKey)
+  }
+  return token
+}
+
 export function AuthSessionProvider({ children }) {
   const [session, setSessionState] = useState()
-  const [status, setStatus] = useState(() =>
-    sessionStorage.getItem(tokenKey) ? 'restoring' : 'anonymous',
-  )
+  const [status, setStatus] = useState(() => (storedToken() ? 'restoring' : 'anonymous'))
 
   const setSession = (nextSession) => {
-    sessionStorage.setItem(tokenKey, nextSession.token)
+    localStorage.setItem(tokenKey, nextSession.token)
+    sessionStorage.removeItem(tokenKey)
     setSessionState(nextSession)
     setStatus('authenticated')
   }
 
   useEffect(() => {
-    const token = sessionStorage.getItem(tokenKey)
+    const token = storedToken()
     if (!token) return
 
     authApi
       .restore(token)
       .then(setSession)
-      .catch(() => {
+      .catch((error) => {
+        if (!(error instanceof AuthApiError) || ![401, 403].includes(error.status)) {
+          setStatus('authenticated')
+          return
+        }
+        localStorage.removeItem(tokenKey)
         sessionStorage.removeItem(tokenKey)
         setSessionState(undefined)
         setStatus('anonymous')
@@ -32,7 +45,8 @@ export function AuthSessionProvider({ children }) {
   }, [])
 
   const signOut = async () => {
-    const token = session?.token
+    const token = session?.token ?? localStorage.getItem(tokenKey)
+    localStorage.removeItem(tokenKey)
     sessionStorage.removeItem(tokenKey)
     setSessionState(undefined)
     setStatus('anonymous')

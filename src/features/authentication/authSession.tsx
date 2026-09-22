@@ -53,6 +53,15 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let active = true
     let restoring = false
+    const hydrateCachedSession = async (token: string) => {
+      const actor = localStorage.getItem(actorKey)
+      const cached = actor ? await offlineStore.identity(actor).catch(() => undefined) : undefined
+      if (!active || localStorage.getItem(tokenKey) !== token || !cached) return false
+      setSessionState({ ...cached, token })
+      setStatus('authenticated')
+      setServerConfirmed(false)
+      return true
+    }
     const restore = async () => {
       if (restoring) return
       const token = localStorage.getItem(tokenKey)
@@ -62,6 +71,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       }
       restoring = true
       try {
+        await hydrateCachedSession(token)
         if (!navigator.onLine) throw new Error('Offline')
         const next = await authApi.restore(token)
         if (active && localStorage.getItem(tokenKey) === token) {
@@ -76,14 +86,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
           await signOut()
           return
         }
-        const actor = localStorage.getItem(actorKey)
-        const cached = actor ? await offlineStore.identity(actor).catch(() => undefined) : undefined
-        if (!active || localStorage.getItem(tokenKey) !== token) return
-        if (cached) {
-          setSessionState({ ...cached, token })
-          setStatus('authenticated')
-          setServerConfirmed(false)
-        } else {
+        const restoredFromCache = await hydrateCachedSession(token)
+        if (!restoredFromCache) {
           setSessionState(undefined)
           setStatus('anonymous')
           setServerConfirmed(false)

@@ -31,6 +31,7 @@ describe('authenticated session lifecycle', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
   })
 
   it('restores a persisted token by confirming it with /auth/me', async () => {
@@ -88,6 +89,29 @@ describe('authenticated session lifecycle', () => {
     expect(await screen.findByText('Test User')).toBeVisible()
     expect(screen.getByText('authenticated')).toBeVisible()
     expect(localStorage.getItem('nexusos-session-token')).toBe('new-token')
+  })
+
+  it('opens with cached session while an online restore request is still pending', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    const { unmount } = render(
+      <AuthSessionProvider>
+        <SessionProbe />
+      </AuthSessionProvider>
+    )
+    await waitFor(() => expect(screen.getByText('anonymous')).toBeVisible())
+    screen.getByRole('button', { name: 'Set session' }).click()
+    await waitFor(() => expect(screen.getByText('Test User')).toBeVisible())
+    unmount()
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => undefined))
+    render(
+      <AuthSessionProvider>
+        <SessionProbe />
+      </AuthSessionProvider>
+    )
+
+    expect(await screen.findByText('Test User')).toBeVisible()
+    expect(screen.getByText('authenticated')).toBeVisible()
   })
 
   it('clears local session state during logout', async () => {

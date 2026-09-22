@@ -12,6 +12,15 @@ interface Identity {
   value: Omit<AuthSession, 'token'>
   updatedAt: number
 }
+interface MediaBlobRecord {
+  key: string
+  actorId: string
+  url: string
+  blob: Blob
+  contentType: string
+  updatedAt: number
+  size: number
+}
 export interface QueuedImage {
   name: string
   type: string
@@ -80,6 +89,7 @@ class InboxDatabase extends Dexie {
   outbox!: Table<QueuedMessage, string>
   starred!: Table<StarredMessage, string>
   actions!: Table<QueuedAction, string>
+  media!: Table<MediaBlobRecord, string>
   constructor() {
     super('nexusos-inbox-v1')
     this.version(1).stores({
@@ -99,6 +109,14 @@ class InboxDatabase extends Dexie {
       outbox: 'id,actorId,[actorId+conversationId]',
       starred: 'key,actorId,[actorId+conversationId]',
       actions: 'id,actorId,kind,status,createdAt'
+    })
+    this.version(4).stores({
+      snapshots: 'key,actorId',
+      identities: 'id',
+      outbox: 'id,actorId,[actorId+conversationId]',
+      starred: 'key,actorId,[actorId+conversationId]',
+      actions: 'id,actorId,kind,status,createdAt',
+      media: 'key,actorId,url,updatedAt'
     })
   }
 }
@@ -165,6 +183,37 @@ export const offlineStore = {
   async removeAction(id: string) {
     await db.actions.delete(id)
   },
+  async saveMedia(actorId: string, url: string, blob: Blob, contentType = blob.type) {
+    const key = `${actorId}:${url}`
+    await db.media.put({
+      key,
+      actorId,
+      url,
+      blob,
+      contentType: contentType || 'application/octet-stream',
+      size: blob.size,
+      updatedAt: Date.now()
+    })
+    const rows = await db.media.where('actorId').equals(actorId).sortBy('updatedAt')
+    let total = rows.reduce((sum, row) => sum + row.size, 0)
+    const maxBytes = 300 * 1024 * 1024
+    const toDelete: string[] = []
+    for (const row of rows) {
+      if (total <= maxBytes) break
+      toDelete.push(row.key)
+      total -= row.size
+    }
+    if (toDelete.length) await db.media.bulkDelete(toDelete)
+  },
+  async media(actorId: string, url: string) {
+    const row = await db.media.get(`${actorId}:${url}`)
+    if (!row) return undefined
+    if (Date.now() - row.updatedAt >= retentionMs) {
+      await db.media.delete(row.key)
+      return undefined
+    }
+    return row
+  },
   async starred(actorId: string, conversationId: string) {
     return db.starred.where('[actorId+conversationId]').equals([actorId, conversationId]).toArray()
   },
@@ -181,17 +230,14 @@ export const offlineStore = {
   async purge(actorId: string) {
     await db.transaction(
       'rw',
-      db.snapshots,
-      db.identities,
-      db.outbox,
-      db.starred,
-      db.actions,
+      [db.snapshots, db.identities, db.outbox, db.starred, db.actions, db.media],
       async () => {
         await db.snapshots.where('actorId').equals(actorId).delete()
         await db.identities.delete(actorId)
         await db.outbox.where('actorId').equals(actorId).delete()
         await db.starred.where('actorId').equals(actorId).delete()
         await db.actions.where('actorId').equals(actorId).delete()
+        await db.media.where('actorId').equals(actorId).delete()
       }
     )
   }

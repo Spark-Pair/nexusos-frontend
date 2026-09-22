@@ -3,13 +3,14 @@ import { Input, Textarea } from '@shared/components/FormControls'
 import { useToast } from '@shared/components/toastContext'
 import { ImagePlus, Send, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import {
-  broadcastApi,
-  broadcastMediaUrl,
-  type BroadcastDraft,
-  type BroadcastList
-} from './broadcastApi'
+import { broadcastApi, type BroadcastDraft, type BroadcastList } from './broadcastApi'
+import { cacheMediaUrls, useMediaUrl } from '@/features/chats/mediaCache'
 import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
+
+function CachedDraftImage({ path, actorId, alt }: { path: string; actorId: string; alt: string }) {
+  const src = useMediaUrl(path, actorId)
+  return <img src={src} alt={alt} className="aspect-square w-full rounded-xl object-cover" />
+}
 
 function LocalImage({ file }: { file: File }) {
   const [url, setUrl] = useState('')
@@ -61,6 +62,9 @@ export function BroadcastComposer({
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const pending = useRef(false)
+  useEffect(() => {
+    void cacheMediaUrls(urls, actorId)
+  }, [actorId, urls])
   const selectedLists = lists.filter((list) => selected.includes(list.id))
   const audienceCount = new Set(selectedLists.flatMap((list) => list.customerIds)).size
   const save = async (mode: 'publish' | 'draft') => {
@@ -233,11 +237,7 @@ export function BroadcastComposer({
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {urls.map((url, index) => (
               <div key={url} className="relative">
-                <img
-                  src={broadcastMediaUrl(url)}
-                  alt={`Attachment ${index + 1}`}
-                  className="aspect-square w-full rounded-xl object-cover"
-                />
+                <CachedDraftImage path={url} actorId={actorId} alt={`Attachment ${index + 1}`} />
                 <button
                   type="button"
                   aria-label={`Remove attachment ${index + 1}`}

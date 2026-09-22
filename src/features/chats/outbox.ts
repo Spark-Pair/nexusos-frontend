@@ -1,6 +1,7 @@
 import { ApiError } from '@shared/ApiError'
 import { messagingApi } from './messagingApi'
 import { offlineStore, type QueuedMessage } from './offlineStore'
+import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 
 const syncing = new Map<string, Promise<void>>()
 
@@ -29,6 +30,19 @@ export function syncOutbox(actorId: string, token: string) {
             token,
             item.images.map((image) => new File([image.blob], image.name, { type: image.type }))
           )
+          await Promise.allSettled(
+            imageUrls.map((url, index) => {
+              const image = item.images?.[index]
+              return image
+                ? offlineStore.saveMedia(
+                    item.actorId,
+                    broadcastMediaUrl(url),
+                    image.blob,
+                    image.type
+                  )
+                : Promise.resolve()
+            })
+          )
           await updateItem(item.id, { imageUrls, status: 'sending' })
         } else if (!audioUrl && item.audio) {
           await updateItem(item.id, { status: 'uploading', error: '' })
@@ -36,6 +50,15 @@ export function syncOutbox(actorId: string, token: string) {
             token,
             new File([item.audio.blob], item.audio.name, { type: item.audio.type })
           )
+          if (item.audio)
+            await offlineStore
+              .saveMedia(
+                item.actorId,
+                broadcastMediaUrl(audioUrl),
+                item.audio.blob,
+                item.audio.type
+              )
+              .catch(() => undefined)
           await updateItem(item.id, { audioUrl, status: 'sending' })
         } else {
           await updateItem(item.id, { status: 'sending', error: '' })

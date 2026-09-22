@@ -34,6 +34,7 @@ import {
   Download
 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMediaUrl } from './mediaCache'
 import type { ConversationDetail, ConversationSummary } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
 import { broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
@@ -58,7 +59,7 @@ function outboxIcon(status: QueuedMessage['status']) {
 
 function downloadName(url: string, fallback: string) {
   const name = url.split('/').pop()?.split('?')[0]
-  return name || fallback
+  return name ?? fallback
 }
 
 function escapeSearchPattern(value: string) {
@@ -85,6 +86,41 @@ function HighlightedMessageText({ text, query }: { text: string; query: string }
       )}
     </>
   )
+}
+
+function CachedImage({
+  path,
+  actorId,
+  alt,
+  className,
+  onLoad
+}: {
+  path: string
+  actorId: string
+  alt: string
+  className?: string
+  onLoad?: () => void
+}) {
+  const src = useMediaUrl(path, actorId)
+  return <img src={src} alt={alt} loading="lazy" onLoad={onLoad} className={className} />
+}
+
+function CachedAudio({
+  path,
+  actorId,
+  className
+}: {
+  path: string
+  actorId: string
+  className?: string
+}) {
+  const src = useMediaUrl(path, actorId)
+  return <audio controls src={src} className={className} />
+}
+
+function CachedDialogImage({ path, actorId, alt }: { path: string; actorId: string; alt: string }) {
+  const src = useMediaUrl(path, actorId)
+  return <img src={src} alt={alt} className="max-h-[70dvh] w-full object-contain" />
 }
 
 function QueuedImagePreview({
@@ -880,10 +916,10 @@ export function ConversationPanel({
                         aria-label={'View image ' + (imageIndex + 1)}
                         onClick={() => openImage(url)}
                       >
-                        <img
-                          src={broadcastMediaUrl(url)}
+                        <CachedImage
+                          path={url}
+                          actorId={currentUserId}
                           alt={'Message image ' + (imageIndex + 1)}
-                          loading="lazy"
                           onLoad={() => {
                             if (stickToBottom.current) scrollToBottom()
                           }}
@@ -893,9 +929,9 @@ export function ConversationPanel({
                     ))}
                   {!message.deletedAt && message.audioUrl && (
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <audio
-                        controls
-                        src={broadcastMediaUrl(message.audioUrl)}
+                      <CachedAudio
+                        path={message.audioUrl}
+                        actorId={currentUserId}
                         className="h-10 w-64 max-w-full"
                       />
                       <a
@@ -990,10 +1026,10 @@ export function ConversationPanel({
                     aria-label={'View queued image ' + (imageIndex + 1)}
                     onClick={() => openImage(url, item.imageUrls ?? [url])}
                   >
-                    <img
-                      src={broadcastMediaUrl(url)}
+                    <CachedImage
+                      path={url}
+                      actorId={currentUserId}
                       alt={'Queued image ' + (imageIndex + 1)}
-                      loading="lazy"
                       onLoad={() => {
                         if (stickToBottom.current) scrollToBottom()
                       }}
@@ -1015,9 +1051,9 @@ export function ConversationPanel({
                   ))}
                 {item.audioUrl ? (
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <audio
-                      controls
-                      src={broadcastMediaUrl(item.audioUrl)}
+                    <CachedAudio
+                      path={item.audioUrl}
+                      actorId={currentUserId}
                       className="h-10 w-64 max-w-full"
                     />
                     <a
@@ -1307,10 +1343,10 @@ export function ConversationPanel({
         {currentImage && image ? (
           <div className="space-y-3">
             <div className="relative grid min-h-[45dvh] place-items-center overflow-hidden rounded-2xl bg-slate-950/95">
-              <img
-                src={broadcastMediaUrl(currentImage)}
+              <CachedDialogImage
+                path={currentImage}
+                actorId={currentUserId}
                 alt={`Chat media ${image.index + 1}`}
-                className="max-h-[70dvh] w-full object-contain"
               />
               {image.urls.length > 1 ? (
                 <>

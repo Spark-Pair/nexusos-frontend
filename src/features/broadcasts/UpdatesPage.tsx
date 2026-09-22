@@ -3,8 +3,20 @@ import { EmptyState } from '@shared/components/states/EmptyState'
 import { ArrowLeft, Bookmark, Flag, Megaphone, VolumeX } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { broadcastApi, broadcastMediaUrl } from './broadcastApi'
+import { broadcastApi } from './broadcastApi'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { cacheMediaUrls, useMediaUrl } from '@/features/chats/mediaCache'
+
+function CachedBroadcastImage({ path, actorId }: { path: string; actorId: string }) {
+  const src = useMediaUrl(path, actorId)
+  return (
+    <img
+      src={src}
+      alt=""
+      className="aspect-square rounded-2xl border border-slate-300 object-cover"
+    />
+  )
+}
 
 export default function UpdatesPage() {
   const { session } = useAuthSession()
@@ -12,11 +24,24 @@ export default function UpdatesPage() {
   const [items, setItems] = useState<Awaited<ReturnType<typeof broadcastApi.all>>>([])
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread' | 'saved'>('all')
-  const reload = () => broadcastApi.all(session!.token).then(setItems)
+  const reload = () =>
+    broadcastApi.all(session!.token).then((next) => {
+      setItems(next)
+      void cacheMediaUrls(
+        next.flatMap((item) => item.imageUrls),
+        session!.data.id
+      )
+    })
   useEffect(() => {
     void broadcastApi
       .all(session!.token)
-      .then(setItems)
+      .then((next) => {
+        setItems(next)
+        void cacheMediaUrls(
+          next.flatMap((item) => item.imageUrls),
+          session!.data.id
+        )
+      })
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : 'Unable to load updates.')
       )
@@ -78,12 +103,7 @@ export default function UpdatesPage() {
                   {item.imageUrls.length ? (
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       {item.imageUrls.map((url) => (
-                        <img
-                          key={url}
-                          src={broadcastMediaUrl(url)}
-                          alt=""
-                          className="aspect-square rounded-2xl border border-slate-300 object-cover"
-                        />
+                        <CachedBroadcastImage key={url} path={url} actorId={session!.data.id} />
                       ))}
                     </div>
                   ) : null}

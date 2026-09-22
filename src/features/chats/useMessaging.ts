@@ -171,7 +171,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       const normalized = items.map(normalizeSummary)
       setConversations(sortConversations(normalized))
       setError(undefined)
-      void cacheMediaUrls(conversationMediaUrls(normalized))
+      void cacheMediaUrls(conversationMediaUrls(normalized), actorId)
       await offlineStore.save(actorId, 'conversations', items.slice(0, 500)).catch(() => undefined)
     } catch (cause) {
       if (!alive.current) return
@@ -226,7 +226,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
               item.id === id && serverConfirmed ? { ...item, unreadCount: 0 } : item
             )
           )
-          void cacheMediaUrls(detailMediaUrls(normalized))
+          void cacheMediaUrls(detailMediaUrls(normalized), actorId)
           await offlineStore
             .save(actorId, id, { ...detail, messages: detail.messages.slice(-200) })
             .catch(() => undefined)
@@ -272,7 +272,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       showRealtimeNotification(payload)
       if (!payload.conversationId) return
       if (payload.message) {
-        void cacheMediaUrls(messageMediaUrls(payload.message))
+        void cacheMediaUrls(messageMediaUrls(payload.message), actorId)
         setConversations((items) =>
           sortConversations(
             items.map((item) =>

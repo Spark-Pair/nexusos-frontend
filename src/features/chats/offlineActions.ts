@@ -1,7 +1,7 @@
 import { ApiError } from '@shared/ApiError'
 import { messagingApi } from './messagingApi'
 import { offlineStore, type QueuedAction, type QueuedBroadcastImage } from './offlineStore'
-import { broadcastApi } from '@/features/broadcasts/broadcastApi'
+import { broadcastApi, broadcastMediaUrl } from '@/features/broadcasts/broadcastApi'
 import { profileApi } from '@/features/profile/profileApi'
 
 const syncing = new Map<string, Promise<void>>()
@@ -30,6 +30,7 @@ export async function queueOfflineAction(
 
 async function uploadBroadcastImages(
   token: string,
+  actorId: string,
   payload: { image_urls?: string[]; pending_images?: QueuedBroadcastImage[] }
 ) {
   const pending = payload.pending_images ?? []
@@ -37,6 +38,14 @@ async function uploadBroadcastImages(
   const uploaded = await broadcastApi.upload(
     token,
     pending.map((image) => new File([image.blob], image.name, { type: image.type }))
+  )
+  await Promise.allSettled(
+    uploaded.map((url, index) => {
+      const image = pending[index]
+      return image
+        ? offlineStore.saveMedia(actorId, broadcastMediaUrl(url), image.blob, image.type)
+        : Promise.resolve()
+    })
   )
   return [...(payload.image_urls ?? []), ...uploaded]
 }
@@ -67,7 +76,7 @@ async function runAction(token: string, action: QueuedAction) {
         id: string
         pending_images?: QueuedBroadcastImage[]
       }
-      const imageUrls = await uploadBroadcastImages(token, payload)
+      const imageUrls = await uploadBroadcastImages(token, action.actorId, payload)
       await broadcastApi.saveDraft(token, payload.id, {
         list_id: payload.list_id,
         title: payload.title,
@@ -83,7 +92,7 @@ async function runAction(token: string, action: QueuedAction) {
       const payload = action.payload as Parameters<typeof broadcastApi.publish>[1] & {
         pending_images?: QueuedBroadcastImage[]
       }
-      const imageUrls = await uploadBroadcastImages(token, payload)
+      const imageUrls = await uploadBroadcastImages(token, action.actorId, payload)
       await broadcastApi.publish(token, {
         ...(payload.list_id ? { list_id: payload.list_id } : {}),
         ...(payload.list_ids ? { list_ids: payload.list_ids } : {}),

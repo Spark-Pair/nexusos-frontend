@@ -18,11 +18,14 @@ registerRoute(
   ({ request, url }) =>
     request.method === 'GET' &&
     url.pathname.startsWith('/api/') &&
+    !url.pathname.startsWith('/api/media/') &&
     !url.pathname.includes('/auth/'),
   new NetworkFirst({ cacheName: 'nexusos-api-v1', networkTimeoutSeconds: 3 })
 )
 registerRoute(
-  ({ request }) => request.destination === 'image',
+  ({ request, url }) =>
+    url.pathname.startsWith('/api/media/') ||
+    ['audio', 'image', 'video'].includes(request.destination),
   new CacheFirst({ cacheName: 'nexusos-media-v1' })
 )
 registerRoute(

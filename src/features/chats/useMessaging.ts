@@ -4,6 +4,12 @@ import { io } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
 import { compressImages } from './media/imageCompression'
 import {
+  cacheMediaUrls,
+  conversationMediaUrls,
+  detailMediaUrls,
+  messageMediaUrls
+} from './mediaCache'
+import {
   messagingApi,
   type ConversationDetail,
   type ConversationSummary,
@@ -162,8 +168,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         throw new Error('Offline: showing saved conversations.')
       const items = await messagingApi.list(token)
       if (!alive.current) return
-      setConversations(sortConversations(items.map(normalizeSummary)))
+      const normalized = items.map(normalizeSummary)
+      setConversations(sortConversations(normalized))
       setError(undefined)
+      void cacheMediaUrls(conversationMediaUrls(normalized))
       await offlineStore.save(actorId, 'conversations', items.slice(0, 500)).catch(() => undefined)
     } catch (cause) {
       if (!alive.current) return
@@ -211,12 +219,14 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
             'This conversation is not saved on this device. Connect to the internet to open it.'
           )
         if (alive.current && selectedId.current === id) {
-          setSelectedState(normalizeDetail(detail))
+          const normalized = normalizeDetail(detail)
+          setSelectedState(normalized)
           setConversations((items) =>
             items.map((item) =>
               item.id === id && serverConfirmed ? { ...item, unreadCount: 0 } : item
             )
           )
+          void cacheMediaUrls(detailMediaUrls(normalized))
           await offlineStore
             .save(actorId, id, { ...detail, messages: detail.messages.slice(-200) })
             .catch(() => undefined)
@@ -262,6 +272,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       showRealtimeNotification(payload)
       if (!payload.conversationId) return
       if (payload.message) {
+        void cacheMediaUrls(messageMediaUrls(payload.message))
         setConversations((items) =>
           sortConversations(
             items.map((item) =>

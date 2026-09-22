@@ -30,7 +30,8 @@ import {
   VolumeX,
   X,
   Trash2,
-  ArrowDown
+  ArrowDown,
+  Download
 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ConversationDetail, ConversationSummary } from './messagingApi'
@@ -53,6 +54,11 @@ function outboxIcon(status: QueuedMessage['status']) {
   ) : (
     <Clock3 className="size-3" />
   )
+}
+
+function downloadName(url: string, fallback: string) {
+  const name = url.split('/').pop()?.split('?')[0]
+  return name || fallback
 }
 
 function escapeSearchPattern(value: string) {
@@ -886,11 +892,21 @@ export function ConversationPanel({
                       </button>
                     ))}
                   {!message.deletedAt && message.audioUrl && (
-                    <audio
-                      controls
-                      src={broadcastMediaUrl(message.audioUrl)}
-                      className="mb-2 h-10 w-64 max-w-full"
-                    />
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <audio
+                        controls
+                        src={broadcastMediaUrl(message.audioUrl)}
+                        className="h-10 w-64 max-w-full"
+                      />
+                      <a
+                        className="button button-sm button-quiet"
+                        href={broadcastMediaUrl(message.audioUrl)}
+                        download={downloadName(message.audioUrl, 'voice-message.webm')}
+                      >
+                        <Download className="size-4" />
+                        Download
+                      </a>
+                    </div>
                   )}
                   {!message.deletedAt && message.body.trim() ? (
                     <p className="whitespace-pre-wrap break-words text-sm leading-6">
@@ -998,11 +1014,21 @@ export function ConversationPanel({
                     />
                   ))}
                 {item.audioUrl ? (
-                  <audio
-                    controls
-                    src={broadcastMediaUrl(item.audioUrl)}
-                    className="mb-2 h-10 w-64 max-w-full"
-                  />
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <audio
+                      controls
+                      src={broadcastMediaUrl(item.audioUrl)}
+                      className="h-10 w-64 max-w-full"
+                    />
+                    <a
+                      className="button button-sm button-quiet"
+                      href={broadcastMediaUrl(item.audioUrl)}
+                      download={downloadName(item.audioUrl, 'voice-message.webm')}
+                    >
+                      <Download className="size-4" />
+                      Download
+                    </a>
+                  </div>
                 ) : item.audio ? (
                   <QueuedAudioPreview audio={item.audio} />
                 ) : null}
@@ -1309,9 +1335,19 @@ export function ConversationPanel({
                   ? `${image.index + 1} of ${image.urls.length}`
                   : 'Image preview'}
               </span>
-              <Button variant="quiet" size="sm" onClick={closeImage}>
-                Close
-              </Button>
+              <span className="flex items-center gap-2">
+                <a
+                  className="button button-sm button-secondary"
+                  href={broadcastMediaUrl(currentImage)}
+                  download={downloadName(currentImage, `chat-media-${image.index + 1}.jpg`)}
+                >
+                  <Download className="size-4" />
+                  Download
+                </a>
+                <Button variant="quiet" size="sm" onClick={closeImage}>
+                  Close
+                </Button>
+              </span>
             </div>
           </div>
         ) : null}

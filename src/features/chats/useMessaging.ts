@@ -374,8 +374,12 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     window.addEventListener('online', update)
     window.addEventListener('offline', update)
     window.addEventListener('nexusos-outbox-updated', updateOutbox)
+    const reconciliationTimer = window.setInterval(() => {
+      if (navigator.onLine && serverConfirmed) void refresh()
+    }, 5000)
     return () => {
       alive.current = false
+      window.clearInterval(reconciliationTimer)
       socket.disconnect()
       window.removeEventListener('online', update)
       window.removeEventListener('offline', update)

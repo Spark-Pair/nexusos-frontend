@@ -1,5 +1,15 @@
-import { Archive, ArchiveRestore, BadgeCheck, Bell, BellOff, Pin, PinOff } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  BadgeCheck,
+  Bell,
+  BellOff,
+  MoreHorizontal,
+  Pin,
+  PinOff
+} from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
 import { MobileTabBar, type MobileTabItem } from './MobileTabBar'
@@ -55,6 +65,7 @@ export function ChatListScreen({
   selectedId?: string | null
   tabs?: MobileTabItem[]
 }) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const visible = conversations.filter((chat) => {
     const matchesFilter = filter === 'all' ? chat.category !== 'archived' : chat.category === filter
     return (
@@ -136,7 +147,7 @@ export function ChatListScreen({
               <div
                 key={chat.id}
                 aria-current={selectedId === chat.id ? 'true' : undefined}
-                className={`chat-list-item group ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
+                className={`chat-list-item group relative ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
               >
                 <button
                   type="button"
@@ -191,23 +202,40 @@ export function ChatListScreen({
                     ) : null}
                   </span>
                   {onQuickAction ? (
-                    <span className="hidden rounded-full bg-white/90 p-1 shadow-sm ring-1 ring-slate-200 transition group-hover:flex group-focus-within:flex dark:bg-slate-900/90 dark:ring-slate-700 sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                      {quickActions.map((item) => {
-                        const Icon = item.icon
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            aria-label={item.label}
-                            title={item.label}
-                            className="grid size-8 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[var(--color-primary)] active:scale-95 dark:text-slate-400 dark:hover:bg-slate-800"
-                            onClick={() => onQuickAction(chat, item.id)}
-                          >
-                            <Icon className="size-4" />
-                          </button>
-                        )
-                      })}
-                    </span>
+                    <div className="relative">
+                      <IconButton
+                        label="Chat actions"
+                        size="sm"
+                        variant="quiet"
+                        icon={<MoreHorizontal className="size-4" />}
+                        aria-expanded={openMenuId === chat.id}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setOpenMenuId((current) => (current === chat.id ? null : chat.id))
+                        }}
+                      />
+                      {openMenuId === chat.id ? (
+                        <div className="absolute right-0 top-full z-20 mt-1 min-w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                          {quickActions.map((item) => {
+                            const Icon = item.icon
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                onClick={() => {
+                                  onQuickAction(chat, item.id)
+                                  setOpenMenuId(null)
+                                }}
+                              >
+                                <Icon className="size-4 text-slate-500" />
+                                {item.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
                 </span>
               </div>

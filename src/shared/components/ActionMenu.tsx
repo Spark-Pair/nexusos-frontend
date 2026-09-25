@@ -26,6 +26,14 @@ export function ActionMenu({
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const closeWhenAnotherOpens = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== id) setOpen(false)
+    }
+    window.addEventListener('nexusos-action-menu-open', closeWhenAnotherOpens)
+    return () => window.removeEventListener('nexusos-action-menu-open', closeWhenAnotherOpens)
+  }, [id])
+
+  useEffect(() => {
     if (!open) return
     root.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus()
     const close = (event: PointerEvent) => {
@@ -61,7 +69,14 @@ export function ActionMenu({
         aria-expanded={open}
         aria-controls={id}
         onPointerDown={(event) => event.stopPropagation()}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          setOpen((current) => {
+            const next = !current
+            if (next)
+              window.dispatchEvent(new CustomEvent('nexusos-action-menu-open', { detail: id }))
+            return next
+          })
+        }}
       />
       {open ? (
         <div

@@ -4,12 +4,12 @@ import {
   BadgeCheck,
   Bell,
   BellOff,
-  MoreHorizontal,
+  MoreVertical,
   Pin,
   PinOff
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
 import { MobileTabBar, type MobileTabItem } from './MobileTabBar'
@@ -66,6 +66,16 @@ export function ChatListScreen({
   tabs?: MobileTabItem[]
 }) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!openMenuId) return
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-chat-actions-menu]')) return
+      setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick)
+  }, [openMenuId])
   const visible = conversations.filter((chat) => {
     const matchesFilter = filter === 'all' ? chat.category !== 'archived' : chat.category === filter
     return (
@@ -202,12 +212,15 @@ export function ChatListScreen({
                     ) : null}
                   </span>
                   {onQuickAction ? (
-                    <div className="relative">
+                    <div
+                      className="relative z-10 rounded-lg bg-white/70 dark:bg-slate-900/70"
+                      data-chat-actions-menu
+                    >
                       <IconButton
                         label="Chat actions"
                         size="sm"
                         variant="quiet"
-                        icon={<MoreHorizontal className="size-4" />}
+                        icon={<MoreVertical className="size-4" />}
                         aria-expanded={openMenuId === chat.id}
                         onClick={(event) => {
                           event.stopPropagation()
@@ -223,7 +236,8 @@ export function ChatListScreen({
                                 key={item.id}
                                 type="button"
                                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                                onClick={() => {
+                                onClick={(event) => {
+                                  event.stopPropagation()
                                   onQuickAction(chat, item.id)
                                   setOpenMenuId(null)
                                 }}

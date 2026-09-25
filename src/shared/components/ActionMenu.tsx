@@ -60,6 +60,7 @@ export function ActionMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={id}
+        onPointerDown={(event) => event.stopPropagation()}
         onClick={() => setOpen((current) => !current)}
       />
       {open ? (

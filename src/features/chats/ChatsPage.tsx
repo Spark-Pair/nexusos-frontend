@@ -9,13 +9,23 @@ import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
-import { History, ListChecks, Megaphone, MessageCircle, RefreshCw, UserRound } from 'lucide-react'
+import {
+  Copy,
+  History,
+  ListChecks,
+  Megaphone,
+  MessageCircle,
+  RefreshCw,
+  RotateCw,
+  UserRound
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
 import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { inviteApi } from '@/features/invites/inviteApi'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
@@ -27,6 +37,8 @@ export default function ChatsPage() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<ChatFilter>('all')
   const [discovering, setDiscovering] = useState(false)
+  const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteBusy, setInviteBusy] = useState(false)
   const closeDiscover = useCallback(() => setDiscovering(false), [])
   useEffect(() => {
     if (conversationId) void open(conversationId).catch(() => undefined)
@@ -54,6 +66,19 @@ export default function ChatsPage() {
     [messaging.conversations]
   )
   const business = session!.data.account_kind === 'business'
+  useEffect(() => {
+    if (!business) return
+    let active = true
+    void inviteApi
+      .getBusinessInvite(session!.token)
+      .then((result) => {
+        if (active) setInviteUrl(result.inviteUrl)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [business, session])
   const current = messaging.conversations.find((item) => item.id === conversationId)
   const mobileItems: MobileTabItem[] = business
     ? [
@@ -109,6 +134,71 @@ export default function ChatsPage() {
           </div>
         ) : null}
         <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-800">
+          {business ? (
+            <div className="mb-4 rounded-2xl bg-slate-100 p-3 dark:bg-slate-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Invite link
+              </p>
+              <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                {inviteUrl || 'Generating link...'}
+              </p>
+              <div className="mt-3 flex gap-2">
+                <IconButton
+                  label="Copy invite link"
+                  size="sm"
+                  variant="quiet"
+                  icon={<Copy className="size-4" />}
+                  disabled={!inviteUrl}
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(inviteUrl)
+                      .then(() =>
+                        toast({
+                          title: 'Invite link copied',
+                          description: 'Customers who open it will connect after sign-in.',
+                          tone: 'success'
+                        })
+                      )
+                      .catch(() =>
+                        toast({
+                          title: 'Could not copy link',
+                          description: 'Select and copy the link manually.',
+                          tone: 'danger'
+                        })
+                      )
+                  }}
+                />
+                <IconButton
+                  label="Regenerate invite link"
+                  size="sm"
+                  variant="quiet"
+                  icon={<RotateCw className="size-4" />}
+                  disabled={inviteBusy}
+                  onClick={() => {
+                    setInviteBusy(true)
+                    void inviteApi
+                      .regenerateBusinessInvite(session!.token)
+                      .then((result) => {
+                        setInviteUrl(result.inviteUrl)
+                        toast({
+                          title: 'Invite link regenerated',
+                          description: 'The previous invite link is no longer active.',
+                          tone: 'success'
+                        })
+                      })
+                      .catch((cause: unknown) =>
+                        toast({
+                          title: 'Invite link not changed',
+                          description: cause instanceof Error ? cause.message : 'Please try again.',
+                          tone: 'danger'
+                        })
+                      )
+                      .finally(() => setInviteBusy(false))
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
           <Link to="/app/profile" className="workspace-nav-link">
             <UserRound className="size-[18px]" aria-hidden="true" />
             <span className="min-w-0">

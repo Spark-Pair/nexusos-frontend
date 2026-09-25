@@ -81,10 +81,10 @@ export default function ChatsPage() {
   }, [business, session])
   const current = messaging.conversations.find((item) => item.id === conversationId)
   useEffect(() => {
-    if (!business || conversationId) return
+    if (conversationId) return
     const unreadConversation = messaging.conversations.find((item) => item.unreadCount > 0)
     if (unreadConversation) navigate(`/app/chats/${unreadConversation.id}`, { replace: true })
-  }, [business, conversationId, messaging.conversations, navigate])
+  }, [conversationId, messaging.conversations, navigate])
   const mobileItems: MobileTabItem[] = business
     ? [
         { id: 'chats', label: 'Chats', icon: 'chats' },

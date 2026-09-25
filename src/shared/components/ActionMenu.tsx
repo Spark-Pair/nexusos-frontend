@@ -1,4 +1,4 @@
-import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { MoreHorizontal, MoreVertical, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { IconButton } from './IconButton'
 
@@ -13,11 +13,13 @@ export interface ActionMenuItem {
 export function ActionMenu({
   items,
   label = 'Open actions',
-  onAction
+  onAction,
+  direction = 'horizontal'
 }: {
   items: readonly ActionMenuItem[]
   label?: string
   onAction: (id: string) => void
+  direction?: 'horizontal' | 'vertical'
 }) {
   const [open, setOpen] = useState(false)
   const id = useId()
@@ -47,7 +49,13 @@ export function ActionMenu({
     <div ref={root} className="relative">
       <IconButton
         label={label}
-        icon={<MoreHorizontal className="size-5" />}
+        icon={
+          direction === 'vertical' ? (
+            <MoreVertical className="size-5" />
+          ) : (
+            <MoreHorizontal className="size-5" />
+          )
+        }
         variant="quiet"
         aria-haspopup="menu"
         aria-expanded={open}

@@ -7,6 +7,7 @@ import {
   BusinessRoute,
   CustomerRoute
 } from '@/features/authentication/AuthRouteGuards'
+import { ScreenTransition } from '@/shared/components/ScreenTransition'
 
 const ChatsPage = lazy(() => import('@/features/chats/ChatsPage'))
 const DesignSystemPage = lazy(() => import('@/features/design-system/DesignSystemPage'))
@@ -29,7 +30,8 @@ export function App() {
         </div>
       }
     >
-      <Routes>
+      <ScreenTransition>
+        <Routes>
         <Route path="/" element={<Navigate to="/app/chats" replace />} />
         <Route path="/join/:token" element={<JoinInvitePage />} />
         <Route element={<SignedOutOnlyRoute />}>
@@ -53,7 +55,8 @@ export function App() {
         <Route path="/design-system" element={<DesignSystemPage />} />
         <Route path="/create-account" element={<Navigate to="/sign-in" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </ScreenTransition>
     </Suspense>
   )
 }

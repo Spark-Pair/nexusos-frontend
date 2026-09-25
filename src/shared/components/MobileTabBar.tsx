@@ -1,4 +1,5 @@
 import { AppIcon, type AppIconName } from './AppIcon'
+import { haptic } from '@/shared/motion/haptics'
 
 export interface MobileTabItem {
   id: string
@@ -32,7 +33,10 @@ export function MobileTabBar({
               key={item.id}
               type="button"
               aria-current={active ? 'page' : undefined}
-              onClick={() => onChange(item.id)}
+              onClick={() => {
+                if (!active) haptic('light')
+                onChange(item.id)
+              }}
               className={`spring-interaction relative flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-control)] border text-[10px] font-semibold transition duration-200  ${active ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200' : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50 dark:text-slate-400 dark:hover:border-slate-800 dark:hover:bg-slate-900'}`}
             >
               <span className="relative">

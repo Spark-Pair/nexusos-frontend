@@ -21,7 +21,10 @@ import { offlineStore, type QueuedMessage } from './offlineStore'
 import { syncOutbox } from './outbox'
 import { broadcastApi } from '@/features/broadcasts/broadcastApi'
 
-const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.replace(/\/$/u, '')
+const apiUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/u, '')
+const socketUrl =
+  (import.meta.env.VITE_SOCKET_URL as string | undefined)?.replace(/\/$/u, '') ??
+  (apiUrl?.startsWith('http') ? new URL(apiUrl).origin : undefined)
 
 interface ConversationUpdatedPayload {
   conversationId?: string

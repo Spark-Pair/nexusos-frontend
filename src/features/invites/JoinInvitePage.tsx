@@ -53,6 +53,7 @@ export default function JoinInvitePage() {
       if (!session) {
         savePendingInvite(token)
         setState('auth-required')
+        void navigate(authRoutes.signIn, { replace: true })
         return
       }
       if (!serverConfirmed) {
@@ -114,7 +115,7 @@ export default function JoinInvitePage() {
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {state === 'auth-required' ? (
-            <Button onClick={() => void navigate(authRoutes.signIn)}>Continue with Google</Button>
+            <Button disabled>Please wait</Button>
           ) : state === 'error' ? (
             <>
               <Button onClick={() => void run()}>

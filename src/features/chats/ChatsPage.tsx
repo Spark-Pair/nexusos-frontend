@@ -361,6 +361,73 @@ export default function ChatsPage() {
       </Dialog>
       {!conversationId && (
         <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
+          {business ? (
+            <div className="mx-3 mb-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Invite link
+              </p>
+              <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                {inviteUrl || 'Generating link...'}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  className="flex-1"
+                  size="sm"
+                  disabled={!inviteUrl}
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(inviteUrl)
+                      .then(() =>
+                        toast({
+                          title: 'Invite link copied',
+                          description: 'Share this link with your customer.',
+                          tone: 'success'
+                        })
+                      )
+                      .catch(() =>
+                        toast({
+                          title: 'Could not copy link',
+                          description: 'Copy the link manually.',
+                          tone: 'danger'
+                        })
+                      )
+                  }}
+                >
+                  <Copy className="mr-1.5 size-4" />
+                  Copy link
+                </Button>
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  disabled={inviteBusy}
+                  onClick={() => {
+                    setInviteBusy(true)
+                    void inviteApi
+                      .regenerateBusinessInvite(session!.token)
+                      .then((result) => {
+                        setInviteUrl(result.inviteUrl)
+                        toast({
+                          title: 'Invite link regenerated',
+                          description: 'The previous link is no longer active.',
+                          tone: 'success'
+                        })
+                      })
+                      .catch(() =>
+                        toast({
+                          title: 'Invite link not changed',
+                          description: 'Please try again.',
+                          tone: 'danger'
+                        })
+                      )
+                      .finally(() => setInviteBusy(false))
+                  }}
+                >
+                  <RotateCw className="mr-1.5 size-4" />
+                  Regenerate
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <MobileTabBar
             activeId="chats"
             items={mobileItems}

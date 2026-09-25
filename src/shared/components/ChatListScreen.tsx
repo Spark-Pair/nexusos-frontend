@@ -1,13 +1,5 @@
 import { ActionMenu } from './ActionMenu'
-import {
-  Archive,
-  ArchiveRestore,
-  BadgeCheck,
-  Bell,
-  BellOff,
-  Pin,
-  PinOff
-} from 'lucide-react'
+import { Archive, ArchiveRestore, BadgeCheck, Bell, BellOff, Pin, PinOff } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
@@ -72,15 +64,13 @@ export function ChatListScreen({
   })
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden bg-white/95 backdrop-blur-xl dark:bg-slate-950/95 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border-2 border-slate-300 dark:border-slate-700' : 'h-full min-h-0 rounded-[var(--radius-surface)] border border-slate-300 dark:border-slate-700'}`}
+      className={`flex w-full flex-col overflow-hidden border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)]' : 'h-full min-h-0 rounded-[var(--radius-surface)]'}`}
     >
-      <header className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-5 dark:border-slate-900 sm:px-6 sm:pt-6">
+      <header className="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4 dark:border-slate-800 sm:px-5 sm:pt-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600">
-              NexusOS
-            </p>
-            <h3 className="mt-1 text-[28px] font-bold tracking-[-0.035em]">Chats</h3>
+            <p className="text-[11px] font-bold uppercase text-[var(--color-brand-600)]">NexusOS</p>
+            <h3 className="mt-1 text-2xl font-semibold">Chats</h3>
           </div>
           <div className="flex items-center gap-1">
             {headerActions}
@@ -109,7 +99,7 @@ export function ChatListScreen({
               type="button"
               aria-pressed={filter === item}
               onClick={() => onFilterChange(item)}
-              className={`spring-interaction min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold capitalize transition  ${filter === item ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200' : 'border-slate-300 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400'}`}
+              className={`spring-interaction min-h-9 shrink-0 rounded-full border px-4 text-xs font-semibold capitalize transition ${filter === item ? 'chat-filter-active' : 'chat-filter'}`}
             >
               {item}
             </button>
@@ -148,24 +138,17 @@ export function ChatListScreen({
                 className={`chat-list-item group relative ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
                 onClick={() => onOpenConversation(chat)}
               >
-                <span className='rounded-[1.15rem]' >
-                  <Avatar label={chat.name} />
-                </span>
+                <Avatar label={chat.name} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
-                      {chat.name}
-                    </span>
+                    <span className="truncate text-sm font-semibold">{chat.name}</span>
                     {chat.pinned ? (
-                      <Pin
-                        aria-label="Pinned"
-                        className="size-3.5 fill-slate-400 text-slate-400"
-                      />
+                      <Pin aria-label="Pinned" className="size-3.5 fill-slate-400 text-slate-400" />
                     ) : null}
                     {chat.verified ? (
                       <BadgeCheck
                         aria-label="Verified"
-                        className="size-4 fill-blue-600 text-white dark:text-slate-950"
+                        className="size-4 fill-[var(--color-brand-500)] text-white dark:text-slate-950"
                       />
                     ) : null}
                   </span>
@@ -178,32 +161,30 @@ export function ChatListScreen({
                 <span className="flex shrink-0 items-center gap-1">
                   <span className="flex min-w-11 flex-col items-end gap-2">
                     <span
-                      className={`text-[10px] ${chat.unreadCount ? 'font-bold text-blue-600' : 'text-slate-400'}`}
+                      className={`text-[10px] ${chat.unreadCount ? 'font-semibold text-[var(--color-brand-600)]' : 'text-slate-400'}`}
                     >
                       {chat.time}
                     </span>
                     {chat.unreadCount ? (
-                      <span className="grid min-w-5 place-items-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      <span className="grid min-h-5 min-w-5 place-items-center rounded-full bg-[var(--color-brand-500)] px-1.5 text-[10px] font-semibold text-white">
                         {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                       </span>
                     ) : null}
                   </span>
                   {onQuickAction ? (
-                  <span
-                    data-chat-actions-menu
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <ActionMenu
-                      label="Chat actions"
-                      direction="vertical"
-                      items={quickActions}
-                      onAction={(id) =>
-                        onQuickAction(chat, id as 'pin' | 'archive' | 'mute')
-                      }
-                    />
-                  </span>
-                ) : null}
+                    <span
+                      data-chat-actions-menu
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <ActionMenu
+                        label="Chat actions"
+                        direction="vertical"
+                        items={quickActions}
+                        onAction={(id) => onQuickAction(chat, id as 'pin' | 'archive' | 'mute')}
+                      />
+                    </span>
+                  ) : null}
                 </span>
               </div>
             )

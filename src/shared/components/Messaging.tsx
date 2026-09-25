@@ -320,7 +320,7 @@ export function MessageComposer({
           }}
           onBlur={() => typing(false)}
           placeholder="Message"
-          className="field-control min-h-10 max-h-40 resize-none rounded-[1.1rem] border-transparent bg-transparent px-2 dark:bg-transparent"
+          className="field-control message-composer-input resize-none"
         />
         <IconButton
           type="submit"
@@ -335,7 +335,7 @@ export function MessageComposer({
           disabled={sending || (!draft.trim() && !files.length && !audio)}
           variant="brand"
           size="md"
-          className="rounded-[1.1rem]"
+          className="message-composer-send"
         />
       </form>
     </div>

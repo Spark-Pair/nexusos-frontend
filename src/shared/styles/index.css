@@ -25,6 +25,10 @@
   --color-slate-800: #28312c;
   --color-slate-900: #1c2420;
   --color-slate-950: #121815;
+  --radius-xl: var(--radius-control);
+  --radius-lg: 0.875rem;
+  --radius-2xl: var(--radius-surface);
+  --radius-3xl: var(--radius-surface);
 }
 
 :root {
@@ -35,8 +39,8 @@
   --color-surface: #ffffff;
   --color-ink: #1c2420;
   --color-muted: #626e67;
-  --radius-control: 0.95rem;
-  --radius-surface: 1.55rem;
+  --radius-control: 0.875rem;
+  --radius-surface: 1.125rem;
   --border-subtle: #e3e7e5;
   --border-control: #cdd4d0;
   --border-control-hover: #87938c;
@@ -66,6 +70,9 @@
 }
 
 :root.dark {
+  --color-brand-500: #4b9382;
+  --color-brand-600: #7ab5a6;
+  --color-brand-700: #acd2c8;
   --color-canvas: #121815;
   --color-surface: #1c2420;
   --color-ink: #f1f3f2;
@@ -114,15 +121,26 @@
 
 @layer components {
   .workspace-nav-link {
-    @apply flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+    @apply flex min-h-11 items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
   }
 
   .workspace-nav-link-active {
-    @apply bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200;
+    background-color: color-mix(in srgb, var(--color-brand-500) 11%, transparent);
+    color: var(--color-brand-700);
+  }
+
+  .chat-filter {
+    @apply border-slate-300 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400;
+  }
+
+  .chat-filter-active {
+    border-color: var(--color-brand-500);
+    background-color: color-mix(in srgb, var(--color-brand-500) 12%, transparent);
+    color: var(--color-brand-700);
   }
 
   .broadcast-surface {
-    @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900;
+    @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
 
   .broadcast-image-remove {
@@ -265,11 +283,27 @@
   }
 
   .app-panel {
-    @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900;
+    @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .profile-settings > aside {
+    height: fit-content;
+  }
+
+  .profile-settings-content {
+    display: grid;
+    align-content: start;
+  }
+
+  @media (min-width: 1024px) {
+    .profile-settings > aside {
+      position: sticky;
+      top: 2rem;
+    }
   }
 
   .ui-surface {
-    @apply rounded-[var(--radius-surface)] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900;
+    @apply rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
 
   .ui-control {
@@ -287,24 +321,35 @@
   }
 
   .chat-list-item {
-    @apply flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply flex min-h-[4.25rem] w-full items-center gap-3 rounded-[var(--radius-control)] border border-transparent bg-transparent px-3 py-2.5 text-left transition duration-200 hover:bg-slate-100 dark:hover:bg-slate-800;
+  }
+
+  .chat-list-item-selected,
+  .chat-list-item-selected:hover {
+    background-color: color-mix(in srgb, var(--color-brand-500) 11%, transparent);
   }
 
   .chat-list-item-selected {
-    @apply bg-blue-50 dark:bg-blue-950/70;
+    box-shadow: inset 2px 0 0 var(--color-brand-500);
   }
 
   .message-bubble {
-    @apply max-w-[min(84%,38rem)] break-words rounded-[1.35rem] border px-3.5 py-2.5 text-[0.95rem] leading-6;
-    box-shadow: 0 1px 0 rgb(18 24 21 / 5%);
+    @apply max-w-[min(84%,38rem)] break-words border px-3.5 py-2.5 text-[0.9375rem] leading-6;
+    border-radius: 1rem;
   }
 
   .message-bubble-outgoing {
-    @apply ml-auto rounded-br-md border-emerald-100 bg-emerald-50 dark:border-emerald-900/70 dark:bg-emerald-950/80;
+    @apply ml-auto;
+    border-color: transparent;
+    border-bottom-right-radius: 0.35rem;
+    background-color: color-mix(in srgb, var(--color-brand-500) 7%, var(--color-surface));
   }
 
   .message-bubble-incoming {
-    @apply mr-auto rounded-bl-md border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
+    @apply mr-auto;
+    border-color: var(--border-subtle);
+    border-bottom-left-radius: 0.35rem;
+    background-color: var(--color-surface);
   }
 
   .message-bubble[aria-selected='true'] {
@@ -555,13 +600,14 @@
 /* Shared inbox: compact desktop navigation, focused mobile conversations. */
 @layer components {
   .inbox-shell {
-    @apply relative flex h-dvh min-h-0 gap-3 overflow-hidden bg-slate-100 p-2 lg:p-3 dark:bg-slate-950;
+    @apply relative flex h-dvh min-h-0 gap-3 overflow-hidden p-2 lg:p-3;
+    background-color: var(--color-canvas);
   }
   .inbox-shell-with-sidebar {
-    @apply lg:grid lg:grid-cols-[216px_340px_minmax(0,1fr)] xl:grid-cols-[216px_360px_minmax(0,1fr)];
+    @apply lg:grid lg:grid-cols-[216px_360px_minmax(0,1fr)] xl:grid-cols-[224px_380px_minmax(0,1fr)];
   }
   .inbox-sidebar {
-    @apply hidden h-[calc(100dvh-1.5rem)] min-h-0 flex-col rounded-[1.65rem] border border-slate-200 bg-white/95 p-4 backdrop-blur lg:flex dark:border-slate-800 dark:bg-slate-900/95;
+    @apply hidden h-[calc(100dvh-1.5rem)] min-h-0 flex-col rounded-[var(--radius-surface)] border border-slate-200 bg-white p-4 lg:flex dark:border-slate-800 dark:bg-slate-900;
   }
   .inbox-rail {
     @apply hidden w-14 shrink-0 flex-col items-center gap-4 py-3 lg:flex;
@@ -582,33 +628,48 @@
     @apply h-full min-h-0 min-w-0 flex-1;
   }
   .conversation-panel {
-    @apply relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 dark:border-slate-800;
-    background-color: rgb(241 243 242 / 0.8);
-    background-image:
-      radial-gradient(circle at 1px 1px, rgb(33 102 83 / 0.055) 1px, transparent 0),
-      linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(241 243 242 / 0.92));
-    background-size:
-      22px 22px,
-      100% 100%;
-  }
-  .dark .conversation-panel {
-    background-color: #121815;
-    background-image:
-      radial-gradient(circle at 1px 1px, rgb(172 210 200 / 0.06) 1px, transparent 0),
-      linear-gradient(180deg, rgb(28 36 32 / 0.72), rgb(18 24 21 / 0.98));
+    @apply relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--radius-surface)] border border-slate-200 dark:border-slate-800;
+    background-color: var(--color-canvas);
   }
   .inbox-empty {
-    @apply flex w-full flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white/50 px-8 text-center dark:border-slate-800 dark:bg-slate-900/40;
+    @apply flex w-full flex-col items-center justify-center px-8 text-center;
   }
   .conversation-header,
   .composer-panel {
-    @apply border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90;
+    @apply border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
-  .chat-list-item {
-    @apply border-transparent bg-transparent hover:border-transparent hover:bg-slate-50 dark:border-transparent dark:bg-transparent dark:hover:border-transparent dark:hover:bg-slate-900;
+  .composer-panel {
+    border-radius: var(--radius-surface);
+    box-shadow: 0 1px 3px rgb(18 24 21 / 4%);
+    transition:
+      border-color var(--motion-duration) var(--motion-easing),
+      box-shadow var(--motion-duration) var(--motion-easing);
   }
-  .chat-list-item-selected {
-    @apply border-transparent bg-emerald-100/80 hover:bg-emerald-50 dark:border-transparent dark:bg-emerald-900/55 dark:hover:bg-emerald-900/70;
+  .composer-panel:focus-within {
+    border-color: color-mix(in srgb, var(--color-brand-500) 48%, var(--border-control));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-500) 9%, transparent);
+  }
+  .message-composer-input {
+    min-height: 2.75rem;
+    max-height: 10rem;
+    border: 0;
+    border-radius: var(--radius-control);
+    background-color: var(--color-canvas);
+    padding: 0.7rem 0.85rem;
+    line-height: 1.45;
+    box-shadow: none;
+  }
+  .message-composer-input:hover,
+  .message-composer-input:focus {
+    border-color: transparent;
+    background-color: var(--color-canvas);
+    box-shadow: none;
+    outline: none;
+  }
+  .message-composer-send {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border-radius: var(--radius-control);
   }
   .toast-stack {
     @apply pointer-events-none fixed bottom-5 right-5 z-[100] flex w-[calc(100%-2.5rem)] max-w-sm flex-col gap-2;
@@ -644,8 +705,8 @@
     flex: none;
   }
   .conversation-header {
-    margin: 0.5rem;
-    border-radius: 1.35rem;
+    margin: 0.75rem 0.75rem 0.5rem;
+    border-radius: var(--radius-surface);
   }
   .message-bubble {
     max-width: min(88%, 34rem);
@@ -667,10 +728,17 @@
   }
   .message-bubble {
     max-width: 91%;
+    border-radius: 0.9rem;
     padding: 0.62rem 0.78rem;
   }
+  .message-bubble-outgoing {
+    border-bottom-right-radius: 0.3rem;
+  }
+  .message-bubble-incoming {
+    border-bottom-left-radius: 0.3rem;
+  }
   .composer-panel {
-    border-radius: 1.35rem;
+    border-radius: var(--radius-surface);
   }
 }
 

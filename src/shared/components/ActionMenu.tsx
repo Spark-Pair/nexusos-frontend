@@ -1,4 +1,5 @@
 import { MoreHorizontal, MoreVertical, type LucideIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useEffect, useId, useRef, useState } from 'react'
 import { IconButton } from './IconButton'
 
@@ -79,10 +80,13 @@ export function ActionMenu({
         }}
       />
       {open ? (
-        <div
+        <motion.div
           id={id}
           role="menu"
           className="action-menu"
+          initial={{ opacity: 0, scale: 0.97, y: -3 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 28, mass: 0.55 }}
           onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
@@ -122,7 +126,7 @@ export function ActionMenu({
               </button>
             )
           })}
-        </div>
+        </motion.div>
       ) : null}
     </div>
   )

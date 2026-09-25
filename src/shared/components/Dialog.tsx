@@ -1,4 +1,5 @@
 import { Button } from '@shared/components/Button'
+import { motion } from 'framer-motion'
 import { useEffect, useId, useRef, type PropsWithChildren } from 'react'
 
 interface DialogProps extends PropsWithChildren {
@@ -66,16 +67,19 @@ export function Dialog({
   }, [initialFocusSelector, onClose, open])
   if (!open) return null
   return (
-    <div
+    <motion.div
       className={`fixed inset-0 z-50 grid bg-slate-950/40  ${
         placement === 'right' ? 'justify-items-end' : 'place-items-center p-4'
       }`}
       role="presentation"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.16 }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div
+      <motion.div
         ref={panel}
         className={
           placement === 'right'
@@ -86,6 +90,9 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
+        initial={{ opacity: 0, scale: 0.97, y: 6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.7 }}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -103,7 +110,7 @@ export function Dialog({
           </Button>
         </div>
         <div className="mt-5">{children}</div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

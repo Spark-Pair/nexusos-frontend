@@ -21,6 +21,7 @@ export default function JoinInvitePage() {
   const [business, setBusiness] = useState<ResolvedBusinessInvite>()
   const [error, setError] = useState('')
   const connectedConversation = useRef<string | undefined>(undefined)
+  const lastRunKey = useRef('')
 
   const finish = useCallback(
     async (conversationId: string) => {
@@ -77,8 +78,11 @@ export default function JoinInvitePage() {
   }, [finish, serverConfirmed, session, status, token])
 
   useEffect(() => {
+    const runKey = `${token}:${status}:${session?.token ?? 'anonymous'}:${String(serverConfirmed)}`
+    if (lastRunKey.current === runKey) return
+    lastRunKey.current = runKey
     if (!connectedConversation.current) void run()
-  }, [run])
+  }, [run, serverConfirmed, session?.token, status, token])
 
   if (!token) return <Navigate to="/" replace />
 

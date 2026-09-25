@@ -10,13 +10,11 @@ import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
 import {
-  Copy,
   History,
   ListChecks,
   Megaphone,
   MessageCircle,
   RefreshCw,
-  RotateCw,
   UserRound
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -25,7 +23,6 @@ import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
 import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
-import { inviteApi } from '@/features/invites/inviteApi'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
@@ -37,8 +34,6 @@ export default function ChatsPage() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<ChatFilter>('all')
   const [discovering, setDiscovering] = useState(false)
-  const [inviteUrl, setInviteUrl] = useState('')
-  const [inviteBusy, setInviteBusy] = useState(false)
   const closeDiscover = useCallback(() => setDiscovering(false), [])
   useEffect(() => {
     if (conversationId) void open(conversationId).catch(() => undefined)
@@ -66,19 +61,6 @@ export default function ChatsPage() {
     [messaging.conversations]
   )
   const business = session!.data.account_kind === 'business'
-  useEffect(() => {
-    if (!business) return
-    let active = true
-    void inviteApi
-      .getBusinessInvite(session!.token)
-      .then((result) => {
-        if (active) setInviteUrl(result.inviteUrl)
-      })
-      .catch(() => undefined)
-    return () => {
-      active = false
-    }
-  }, [business, session])
   const current = messaging.conversations.find((item) => item.id === conversationId)
   useEffect(() => {
     if (conversationId) return
@@ -139,71 +121,6 @@ export default function ChatsPage() {
           </div>
         ) : null}
         <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-800">
-          {business ? (
-            <div className="mb-4 rounded-2xl bg-slate-100 p-3 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Invite link
-              </p>
-              <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                {inviteUrl || 'Generating link...'}
-              </p>
-              <div className="mt-3 flex gap-2">
-                <IconButton
-                  label="Copy invite link"
-                  size="sm"
-                  variant="quiet"
-                  icon={<Copy className="size-4" />}
-                  disabled={!inviteUrl}
-                  onClick={() => {
-                    void navigator.clipboard
-                      .writeText(inviteUrl)
-                      .then(() =>
-                        toast({
-                          title: 'Invite link copied',
-                          description: 'Customers who open it will connect after sign-in.',
-                          tone: 'success'
-                        })
-                      )
-                      .catch(() =>
-                        toast({
-                          title: 'Could not copy link',
-                          description: 'Select and copy the link manually.',
-                          tone: 'danger'
-                        })
-                      )
-                  }}
-                />
-                <IconButton
-                  label="Regenerate invite link"
-                  size="sm"
-                  variant="quiet"
-                  icon={<RotateCw className="size-4" />}
-                  disabled={inviteBusy}
-                  onClick={() => {
-                    setInviteBusy(true)
-                    void inviteApi
-                      .regenerateBusinessInvite(session!.token)
-                      .then((result) => {
-                        setInviteUrl(result.inviteUrl)
-                        toast({
-                          title: 'Invite link regenerated',
-                          description: 'The previous invite link is no longer active.',
-                          tone: 'success'
-                        })
-                      })
-                      .catch((cause: unknown) =>
-                        toast({
-                          title: 'Invite link not changed',
-                          description: cause instanceof Error ? cause.message : 'Please try again.',
-                          tone: 'danger'
-                        })
-                      )
-                      .finally(() => setInviteBusy(false))
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
           <Link to="/app/profile" className="workspace-nav-link">
             <UserRound className="size-[18px]" aria-hidden="true" />
             <span className="min-w-0">
@@ -361,73 +278,6 @@ export default function ChatsPage() {
       </Dialog>
       {!conversationId && (
         <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
-          {business ? (
-            <div className="mx-3 mb-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                Invite link
-              </p>
-              <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-                {inviteUrl || 'Generating link...'}
-              </p>
-              <div className="mt-2 flex gap-2">
-                <Button
-                  className="flex-1"
-                  size="sm"
-                  disabled={!inviteUrl}
-                  onClick={() => {
-                    void navigator.clipboard
-                      .writeText(inviteUrl)
-                      .then(() =>
-                        toast({
-                          title: 'Invite link copied',
-                          description: 'Share this link with your customer.',
-                          tone: 'success'
-                        })
-                      )
-                      .catch(() =>
-                        toast({
-                          title: 'Could not copy link',
-                          description: 'Copy the link manually.',
-                          tone: 'danger'
-                        })
-                      )
-                  }}
-                >
-                  <Copy className="mr-1.5 size-4" />
-                  Copy link
-                </Button>
-                <Button
-                  size="sm"
-                  variant="quiet"
-                  disabled={inviteBusy}
-                  onClick={() => {
-                    setInviteBusy(true)
-                    void inviteApi
-                      .regenerateBusinessInvite(session!.token)
-                      .then((result) => {
-                        setInviteUrl(result.inviteUrl)
-                        toast({
-                          title: 'Invite link regenerated',
-                          description: 'The previous link is no longer active.',
-                          tone: 'success'
-                        })
-                      })
-                      .catch(() =>
-                        toast({
-                          title: 'Invite link not changed',
-                          description: 'Please try again.',
-                          tone: 'danger'
-                        })
-                      )
-                      .finally(() => setInviteBusy(false))
-                  }}
-                >
-                  <RotateCw className="mr-1.5 size-4" />
-                  Regenerate
-                </Button>
-              </div>
-            </div>
-          ) : null}
           <MobileTabBar
             activeId="chats"
             items={mobileItems}

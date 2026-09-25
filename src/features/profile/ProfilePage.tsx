@@ -14,6 +14,7 @@ import {
   LogOut,
   Megaphone,
   Moon,
+  RotateCw,
   ShieldCheck,
   UserRound
 } from 'lucide-react'
@@ -25,6 +26,7 @@ import { useAuthSession } from '@/features/authentication/authSession'
 import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
 import { offlineStore } from '@/features/chats/offlineStore'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
+import { inviteApi } from '@/features/invites/inviteApi'
 
 export default function ProfilePage() {
   const { session, signOut, serverConfirmed } = useAuthSession()
@@ -40,6 +42,9 @@ export default function ProfilePage() {
   const [contactPersonName, setContactPersonName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
   const [requestingBusiness, setRequestingBusiness] = useState(false)
+  const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteBusy, setInviteBusy] = useState(false)
   const notifications = usePushNotifications(token)
   const closeLogout = useCallback(() => {
     if (!signingOut) setLeaving(false)
@@ -79,6 +84,13 @@ export default function ProfilePage() {
   useEffect(() => {
     void load()
   }, [load])
+  useEffect(() => {
+    if (session!.data.account_kind !== 'business') return
+    void inviteApi
+      .getBusinessInvite(token)
+      .then((result) => setInviteUrl(result.inviteUrl))
+      .catch(() => undefined)
+  }, [session, token])
   if (!profile)
     return (
       <WorkspaceShell
@@ -330,6 +342,22 @@ export default function ProfilePage() {
               />
             </section>
 
+            {profile.account_kind === 'business' ? (
+              <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="font-bold">Invite customers</h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      Share one link to connect customers directly to your business chat.
+                    </p>
+                  </div>
+                  <Button type="button" onClick={() => setInviteOpen(true)}>
+                    <BriefcaseBusiness className="size-4" /> Manage invite link
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+
             {profile.account_kind === 'customer' ? (
               <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
                 <div className="flex items-start gap-3">
@@ -454,6 +482,55 @@ export default function ProfilePage() {
           </div>
         </section>
       </form>
+      <Dialog
+        open={inviteOpen}
+        title="Business invite link"
+        description="Customers who use this link will be connected to your business chat after sign-in."
+        onClose={() => setInviteOpen(false)}
+      >
+        <div className="grid gap-4">
+          <div className="rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+            <p className="break-all font-mono text-xs text-slate-600 dark:text-slate-300">
+              {inviteUrl || 'Generating link...'}
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="quiet" onClick={() => setInviteOpen(false)}>
+              Close
+            </Button>
+            <Button
+              type="button"
+              disabled={!inviteUrl}
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(inviteUrl)
+                  .then(() => toast({ title: 'Invite link copied', tone: 'success' }))
+                  .catch(() => toast({ title: 'Could not copy link', tone: 'danger' }))
+              }}
+            >
+              <Copy className="size-4" /> Copy link
+            </Button>
+            <Button
+              type="button"
+              variant="quiet"
+              disabled={inviteBusy}
+              onClick={() => {
+                setInviteBusy(true)
+                void inviteApi
+                  .regenerateBusinessInvite(token)
+                  .then((result) => {
+                    setInviteUrl(result.inviteUrl)
+                    toast({ title: 'Invite link regenerated', tone: 'success' })
+                  })
+                  .catch(() => toast({ title: 'Invite link not changed', tone: 'danger' }))
+                  .finally(() => setInviteBusy(false))
+              }}
+            >
+              <RotateCw className="size-4" /> Regenerate
+            </Button>
+          </div>
+        </div>
+      </Dialog>
       <Dialog
         open={leaving}
         title="Sign out?"

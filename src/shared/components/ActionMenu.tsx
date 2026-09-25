@@ -83,6 +83,7 @@ export function ActionMenu({
           id={id}
           role="menu"
           className="action-menu"
+          onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
             event.preventDefault()
@@ -109,7 +110,8 @@ export function ActionMenu({
                 type="button"
                 role="menuitem"
                 disabled={item.disabled}
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation()
                   onAction(item.id)
                   setOpen(false)
                 }}

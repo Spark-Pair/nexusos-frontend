@@ -215,6 +215,7 @@ export default function BroadcastPage() {
   return (
     <WorkspaceShell
       accountName={session!.data.name}
+      actorId={session!.data.id}
       navigation={views.map((item) => (
         <Link
           key={item.id}

@@ -11,7 +11,7 @@ import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
 import { History, ListChecks, Megaphone, MessageCircle, RefreshCw, UserRound } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
@@ -19,6 +19,7 @@ import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { haptic } from '@/shared/motion/haptics'
+import { setUnreadCount, useUnreadCount } from './unreadCount'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ export default function ChatsPage() {
   const { session, serverConfirmed } = useAuthSession()
   usePushNotifications(session!.token)
   const messaging = useMessaging(session!.token, session!.data.id, serverConfirmed)
+  const unreadCount = useUnreadCount(session!.data.id)
   const { open, setSelected } = messaging
   const toast = useToast()
   const [query, setQuery] = useState('')
@@ -35,6 +37,7 @@ export default function ChatsPage() {
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false
   )
   const reducedMotion = useReducedMotion()
+  const conversationSwipe = useRef<{ x: number; y: number } | undefined>(undefined)
   const closeDiscover = useCallback(() => setDiscovering(false), [])
   useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)')
@@ -68,8 +71,36 @@ export default function ChatsPage() {
       })),
     [messaging.conversations]
   )
+  useEffect(() => {
+    if (messaging.loading) return
+    setUnreadCount(
+      session!.data.id,
+      messaging.conversations.reduce((total, conversation) => total + conversation.unreadCount, 0)
+    )
+  }, [messaging.conversations, messaging.loading, session])
   const business = session!.data.account_kind === 'business'
   const current = messaging.conversations.find((item) => item.id === conversationId)
+  const onConversationPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isMobile || event.pointerType !== 'touch') return
+    const target = event.target
+    if (
+      target instanceof Element &&
+      target.closest('button, a, input, textarea, select, [role="button"], [data-no-page-swipe]')
+    )
+      return
+    conversationSwipe.current = { x: event.clientX, y: event.clientY }
+  }
+  const onConversationPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const start = conversationSwipe.current
+    conversationSwipe.current = undefined
+    if (!start || event.pointerType !== 'touch') return
+    const dx = event.clientX - start.x
+    const dy = event.clientY - start.y
+    if (dx < 76 || Math.abs(dy) > 64 || dx < Math.abs(dy) * 1.3) return
+    event.preventDefault()
+    haptic('selection')
+    void navigate('/app/chats')
+  }
   useEffect(() => {
     if (conversationId) return
     const unreadConversation = messaging.conversations.find((item) => item.unreadCount > 0)
@@ -77,21 +108,32 @@ export default function ChatsPage() {
   }, [conversationId, messaging.conversations, navigate])
   const mobileItems: MobileTabItem[] = business
     ? [
-        { id: 'chats', label: 'Chats', icon: 'chats' },
+        {
+          id: 'chats',
+          label: 'Chats',
+          icon: 'chats',
+          ...(unreadCount ? { badge: unreadCount } : {})
+        },
         { id: 'broadcasts', label: 'Lists', icon: 'broadcasts' },
         { id: 'compose', label: 'Send', icon: 'send' },
         { id: 'history', label: 'History', icon: 'history' },
         { id: 'profile', label: 'Profile', icon: 'profile' }
       ]
     : [
-        { id: 'chats', label: 'Chats', icon: 'chats' },
+        {
+          id: 'chats',
+          label: 'Chats',
+          icon: 'chats',
+          ...(unreadCount ? { badge: unreadCount } : {})
+        },
         { id: 'profile', label: 'Profile', icon: 'profile' }
       ]
   return (
     <main
+      data-mobile-swipe
       className={
         'app-canvas inbox-shell inbox-shell-with-sidebar overflow-x-hidden ' +
-        (!conversationId ? 'max-lg:pb-[5.75rem]' : '')
+        (!conversationId ? 'max-lg:pb-[var(--mobile-app-bar-height)]' : '')
       }
     >
       <nav aria-label="Workspace" className="inbox-sidebar">
@@ -234,6 +276,11 @@ export default function ChatsPage() {
               ? { duration: 0 }
               : { type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }
           }
+          onPointerDown={onConversationPointerDown}
+          onPointerUp={onConversationPointerUp}
+          onPointerCancel={() => {
+            conversationSwipe.current = undefined
+          }}
         >
           {messaging.selected?.conversation.id === conversationId && messaging.selected ? (
             <ConversationPanel

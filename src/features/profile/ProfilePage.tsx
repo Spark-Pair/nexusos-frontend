@@ -2,14 +2,17 @@ import { Button } from '@shared/components/Button'
 import { Dialog } from '@shared/components/Dialog'
 import { Input, Switch, Textarea } from '@shared/components/FormControls'
 import { ThemeToggle } from '@shared/components/ThemeToggle'
+import { SearchField } from '@shared/components/SearchField'
 import { useToast } from '@shared/components/toastContext'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
 import {
   ArrowLeft,
   Bell,
   BriefcaseBusiness,
+  ChevronRight,
   Copy,
   History,
+  KeyRound,
   ListChecks,
   LogOut,
   Megaphone,
@@ -19,7 +22,7 @@ import {
   UserRound
 } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { profileApi, type Profile } from './profileApi'
 import { authRoutes } from '@/features/authentication/authRoutes'
 import { useAuthSession } from '@/features/authentication/authSession'
@@ -29,12 +32,50 @@ import { usePushNotifications } from '@/features/notifications/usePushNotificati
 import { inviteApi } from '@/features/invites/inviteApi'
 import { haptic } from '@/shared/motion/haptics'
 
+const settingsCategories = [
+  {
+    id: 'profile',
+    title: 'Profile',
+    description: 'Name, username, about and language',
+    icon: UserRound
+  },
+  {
+    id: 'privacy',
+    title: 'Privacy',
+    description: 'Presence, read receipts and broadcasts',
+    icon: ShieldCheck
+  },
+  {
+    id: 'appearance',
+    title: 'Appearance',
+    description: 'Theme and visual preferences',
+    icon: Moon
+  },
+  {
+    id: 'notifications',
+    title: 'Notifications',
+    description: 'This browser and device',
+    icon: Bell
+  },
+  {
+    id: 'business',
+    title: 'Business tools',
+    description: 'Invites and business account access',
+    icon: BriefcaseBusiness
+  },
+  { id: 'account', title: 'Account', description: 'NexusOS ID and sign-in session', icon: KeyRound }
+] as const
+
+type SettingsSection = (typeof settingsCategories)[number]['id']
+
 export default function ProfilePage() {
   const { session, signOut, serverConfirmed } = useAuthSession()
   const token = session!.token
   const toast = useToast()
   const navigate = useNavigate()
+  const { section: sectionParam } = useParams()
   const [profile, setProfile] = useState<Profile>()
+  const [categorySearch, setCategorySearch] = useState('')
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -108,6 +149,7 @@ export default function ProfilePage() {
     return (
       <WorkspaceShell
         accountName={session!.data.name}
+        actorId={session!.data.id}
         accountKind={session!.data.account_kind}
         navigation={businessNavigation}
       >
@@ -163,6 +205,12 @@ export default function ProfilePage() {
     setProfile({ ...profile, settings: { ...profile.settings, [key]: value } })
   const businessRequest = profile.business_request
   const pendingBusinessRequest = businessRequest?.status === 'pending'
+  const section = settingsCategories.find((item) => item.id === sectionParam)?.id as
+    SettingsSection | undefined
+  const sectionTitle =
+    section === 'business' && profile.account_kind === 'customer'
+      ? 'Business account'
+      : settingsCategories.find((item) => item.id === section)?.title
 
   const requestBusiness = async () => {
     if (requestingBusiness) return
@@ -205,240 +253,196 @@ export default function ProfilePage() {
       setRequestingBusiness(false)
     }
   }
+  if (sectionParam && !section) return <Navigate to="/app/profile" replace />
+  const groupedCategories = [
+    { title: 'Personal', ids: ['profile', 'privacy', 'appearance'] },
+    { title: 'Workspace', ids: ['notifications', 'business'] },
+    { title: 'Account', ids: ['account'] }
+  ] as const
+  const notificationSummary = notifications.enabled
+    ? 'Enabled on this browser'
+    : notifications.permission === 'denied'
+      ? 'Blocked by browser settings'
+      : 'Permission and delivery settings'
+  const normalizedCategorySearch = categorySearch.trim().toLocaleLowerCase()
+  const visibleGroups = groupedCategories
+    .map((group) => ({
+      ...group,
+      categories: group.ids
+        .map((id) => {
+          const category = settingsCategories.find((item) => item.id === id)!
+          const title =
+            id === 'business'
+              ? profile.account_kind === 'business'
+                ? 'Business tools'
+                : 'Business account'
+              : category.title
+          const description =
+            category.id === 'notifications' ? notificationSummary : category.description
+          return { category, title, description }
+        })
+        .filter(({ title, description }) =>
+          `${group.title} ${title} ${description}`
+            .toLocaleLowerCase()
+            .includes(normalizedCategorySearch)
+        )
+    }))
+    .filter((group) => group.categories.length > 0)
   return (
     <WorkspaceShell
       accountName={session!.data.name}
+      actorId={session!.data.id}
       accountKind={session!.data.account_kind}
       navigation={businessNavigation}
     >
-      <form
-        onSubmit={(e) => void save(e)}
-        className="profile-settings grid w-full gap-3 lg:grid-cols-[260px_minmax(0,1fr)]"
-      >
-        <aside className="app-panel p-5">
-          <Button type="button" variant="quiet" onClick={() => void navigate('/app/chats')}>
-            <ArrowLeft className="size-4" /> Chats
-          </Button>
-          <div className="mt-8">
-            <span className="grid size-16 place-items-center rounded-3xl border border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-              <UserRound className="size-7" />
-            </span>
-            <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-300">
-              {profile.account_kind}
-            </p>
-            <h1 className="mt-1 break-words text-2xl font-bold tracking-tight">
-              Profile & settings
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Your public name, username and privacy controls for chats.
-            </p>
-          </div>
-          <div className="mt-8 min-w-0 rounded-xl border border-slate-300 p-3 text-sm dark:border-slate-700">
-            <p className="font-semibold">NexusOS ID</p>
-            <div className="mt-1 flex min-w-0 items-center gap-2">
-              <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                {profile.id}
-              </code>
-              <Button
-                type="button"
-                size="sm"
-                variant="quiet"
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(profile.id)
-                    .then(() => toast({ title: 'NexusOS ID copied', tone: 'success' }))
-                    .catch(() =>
-                      toast({
-                        title: 'Could not copy ID',
-                        description: 'Select and copy the ID manually.',
-                        tone: 'danger'
-                      })
-                    )
-                }
-              >
-                <Copy className="size-4" /> Copy
-              </Button>
+      <div className="mx-auto w-full max-w-2xl">
+        {!section ? (
+          <section className="app-panel overflow-hidden">
+            <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800 sm:px-6">
+              <p className="text-xs font-semibold capitalize text-[var(--color-brand-600)]">
+                {profile.account_kind} account
+              </p>
+              <h1 className="mt-1 text-xl font-semibold">{profile.name}</h1>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">@{profile.username}</p>
             </div>
-          </div>
-        </aside>
-        <section className="profile-settings-content app-panel p-4 sm:p-6 lg:p-8">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold">Settings</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Manage your profile, privacy, appearance and account access from one place.
-            </p>
-          </div>
-          <div className="profile-settings-sections grid gap-4">
-            <section className="grid gap-4 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-[var(--color-primary)] dark:bg-emerald-950/40">
-                  <UserRound className="size-5" />
-                </span>
+            <div className="px-4 pb-4 pt-4 sm:px-6">
+              <SearchField
+                label="Search settings"
+                value={categorySearch}
+                onChange={setCategorySearch}
+                placeholder="Search settings"
+              />
+            </div>
+            {visibleGroups.length ? (
+              visibleGroups.map((group) => (
+                <div key={group.title} className="settings-category-group">
+                  <h2 className="settings-category-heading">{group.title}</h2>
+                  {group.categories.map(({ category, title, description }) => (
+                    <Link
+                      key={category.id}
+                      to={`/app/profile/${category.id}`}
+                      onClick={() => haptic('light')}
+                      className="settings-category-row"
+                    >
+                      <category.icon className="size-[18px] shrink-0 text-slate-500 dark:text-slate-400" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium">{title}</span>
+                        <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+                          {description}
+                        </span>
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-slate-400" />
+                    </Link>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <p className="px-4 pb-5 text-sm text-slate-500 sm:px-6" role="status">
+                No settings match: {categorySearch}
+              </p>
+            )}
+          </section>
+        ) : (
+          <>
+            <div className="mb-4">
+              <Link
+                to="/app/profile"
+                onClick={() => haptic('light')}
+                className="inline-flex min-h-10 items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                <ArrowLeft className="size-4" /> Settings
+              </Link>
+              <h1 className="mt-2 text-xl font-semibold">{sectionTitle}</h1>
+            </div>
+
+            {section === 'profile' || section === 'privacy' ? (
+              <form
+                onSubmit={(event) => void save(event)}
+                className="app-panel grid gap-4 p-4 sm:p-6"
+              >
+                {section === 'profile' ? (
+                  <>
+                    <Input
+                      label="Name"
+                      value={profile.name}
+                      onChange={(event) => setProfile({ ...profile, name: event.target.value })}
+                    />
+                    <Input
+                      label="Username"
+                      value={profile.username}
+                      onChange={(event) =>
+                        setProfile({ ...profile, username: event.target.value.toLowerCase() })
+                      }
+                    />
+                    <Textarea
+                      label="About"
+                      optional
+                      maxLength={240}
+                      value={profile.settings.bio}
+                      onChange={(event) => setting('bio', event.target.value)}
+                    />
+                    <Input
+                      label="Language"
+                      value={profile.settings.language}
+                      onChange={(event) =>
+                        setting('language', event.target.value as Profile['settings']['language'])
+                      }
+                      hint="Use en, ur, or roman-ur"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Switch
+                      label="Show last seen"
+                      checked={profile.settings.showLastSeen}
+                      onChange={(event) => setting('showLastSeen', event.target.checked)}
+                    />
+                    <Switch
+                      label="Read receipts"
+                      checked={profile.settings.allowReadReceipts}
+                      onChange={(event) => setting('allowReadReceipts', event.target.checked)}
+                    />
+                    <Switch
+                      label="Receive business broadcasts"
+                      checked={profile.settings.allowBroadcasts}
+                      onChange={(event) => setting('allowBroadcasts', event.target.checked)}
+                    />
+                  </>
+                )}
+                {notice ? (
+                  <p role="status" className="text-sm text-slate-500">
+                    {notice}
+                  </p>
+                ) : null}
+                <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <Button type="submit" loading={saving}>
+                    Save changes
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+
+            {section === 'appearance' ? (
+              <section className="app-panel flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
                 <div>
-                  <h2 className="font-bold">Profile</h2>
+                  <h2 className="text-sm font-medium">Color theme</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    This is how people see you inside chats.
+                    Choose light or dark appearance for this device.
                   </p>
                 </div>
-              </div>
-              <Input
-                label="Name"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              />
-              <Input
-                label="Username"
-                value={profile.username}
-                onChange={(e) => setProfile({ ...profile, username: e.target.value.toLowerCase() })}
-              />
-              <Textarea
-                label="About"
-                optional
-                maxLength={240}
-                value={profile.settings.bio}
-                onChange={(e) => setting('bio', e.target.value)}
-              />
-              <Input
-                label="Language"
-                value={profile.settings.language}
-                onChange={(e) =>
-                  setting('language', e.target.value as Profile['settings']['language'])
-                }
-                hint="Use en, ur, or roman-ur"
-              />
-            </section>
-            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                  <Moon className="size-5" />
-                </span>
-                <div>
-                  <h2 className="font-bold">Appearance</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Switch the app between light and dark mode.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  Theme
-                </span>
                 <ThemeToggle />
-              </div>
-            </section>
-            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                  <ShieldCheck className="size-5" />
-                </span>
-                <div>
-                  <h2 className="font-bold">Privacy</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Control read signals and broadcast delivery.
-                  </p>
-                </div>
-              </div>
-              <Switch
-                label="Show last seen"
-                checked={profile.settings.showLastSeen}
-                onChange={(e) => setting('showLastSeen', e.target.checked)}
-              />
-              <Switch
-                label="Read receipts"
-                checked={profile.settings.allowReadReceipts}
-                onChange={(e) => setting('allowReadReceipts', e.target.checked)}
-              />
-              <Switch
-                label="Receive business broadcasts"
-                checked={profile.settings.allowBroadcasts}
-                onChange={(e) => setting('allowBroadcasts', e.target.checked)}
-              />
-            </section>
-
-            {profile.account_kind === 'business' ? (
-              <section className="grid gap-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="font-bold">Invite customers</h2>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Share one link to connect customers directly to your business chat.
-                    </p>
-                  </div>
-                  <Button type="button" onClick={() => setInviteOpen(true)}>
-                    <BriefcaseBusiness className="size-4" /> Manage invite link
-                  </Button>
-                </div>
               </section>
             ) : null}
 
-            {profile.account_kind === 'customer' ? (
-              <section className="grid gap-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
-                <div className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white text-[var(--color-primary)] dark:bg-emerald-950/70">
-                    <BriefcaseBusiness className="size-5" />
-                  </span>
-                  <div>
-                    <h2 className="font-bold">Be a Business</h2>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      Business accounts can invite customers, organize broadcast lists, publish
-                      updates into customer chats and manage a business inbox. Admins call your
-                      contact person before upgrading this account.
-                    </p>
-                    {businessRequest ? (
-                      <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-[var(--color-primary)] dark:bg-slate-950/50">
-                        Latest request: {businessRequest.status} ? {businessRequest.businessName}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="grid gap-3">
-                  <Input
-                    label="Business name"
-                    autoComplete="organization"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                  />
-                  <Input
-                    label="Person to call"
-                    autoComplete="name"
-                    value={contactPersonName}
-                    onChange={(e) => setContactPersonName(e.target.value)}
-                  />
-                  <Input
-                    label="Valid phone number"
-                    type="tel"
-                    autoComplete="tel"
-                    hint="Use a number admins can call directly."
-                    value={businessPhone}
-                    onChange={(e) => setBusinessPhone(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    loading={requestingBusiness}
-                    disabled={pendingBusinessRequest}
-                    className="justify-center sm:w-fit"
-                    onClick={() => void requestBusiness()}
-                  >
-                    {pendingBusinessRequest ? 'Request pending' : 'Send business request'}
-                  </Button>
-                </div>
-              </section>
-            ) : null}
-            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                  <Bell className="size-5" />
-                </span>
+            {section === 'notifications' ? (
+              <section className="app-panel grid gap-4 p-4 sm:p-6">
                 <div>
-                  <h2 className="font-bold">Device notifications</h2>
+                  <h2 className="text-sm font-medium">Browser notifications</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    NexusOS asks for browser permission from your first workspace interaction. This
-                    device setting is shown here for status and recovery.
+                    NexusOS asks for permission after your first workspace interaction.
                   </p>
                 </div>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <p className="text-sm font-semibold">
                   {notifications.supported
                     ? notifications.enabled
                       ? 'Enabled on this browser'
@@ -447,59 +451,124 @@ export default function ProfilePage() {
                         : 'Not enabled yet'
                     : 'Not supported on this browser'}
                 </p>
-                <Button
-                  type="button"
-                  disabled={
-                    !notifications.supported ||
-                    notifications.enabled ||
-                    notifications.permission === 'denied'
-                  }
-                  onClick={() => void notifications.enable()}
-                >
-                  {notifications.enabled
-                    ? 'Notifications enabled'
-                    : notifications.permission === 'denied'
-                      ? 'Blocked in browser settings'
-                      : 'Retry notifications'}
-                </Button>
-              </div>
-              {notifications.error ? (
-                <p className="text-sm font-semibold text-rose-600">{notifications.error}</p>
-              ) : null}
-            </section>
-            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-                  <LogOut className="size-5" />
-                </span>
                 <div>
-                  <h2 className="font-bold">Session</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Sign out of NexusOS on this device from settings.
-                  </p>
+                  <Button
+                    type="button"
+                    disabled={
+                      !notifications.supported ||
+                      notifications.enabled ||
+                      notifications.permission === 'denied'
+                    }
+                    onClick={() => void notifications.enable()}
+                  >
+                    {notifications.enabled ? 'Notifications enabled' : 'Retry notifications'}
+                  </Button>
                 </div>
-              </div>
-              <Button
-                type="button"
-                variant="danger"
-                className="w-full justify-center sm:w-fit"
-                onClick={() => setLeaving(true)}
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </Button>
-            </section>
-            {notice ? (
-              <p role="status" className="text-sm text-blue-700">
-                {notice}
-              </p>
+                {notifications.error ? (
+                  <p className="text-sm font-medium text-rose-600">{notifications.error}</p>
+                ) : null}
+              </section>
             ) : null}
-            <Button type="submit" loading={saving}>
-              Save changes
-            </Button>
-          </div>
-        </section>
-      </form>
+
+            {section === 'business' ? (
+              profile.account_kind === 'business' ? (
+                <section className="app-panel flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
+                  <div>
+                    <h2 className="text-sm font-medium">Customer invite link</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Let customers connect directly to your business chat.
+                    </p>
+                  </div>
+                  <Button type="button" onClick={() => setInviteOpen(true)}>
+                    <BriefcaseBusiness className="size-4" /> Manage link
+                  </Button>
+                </section>
+              ) : (
+                <section className="app-panel grid gap-4 p-4 sm:p-6">
+                  <div>
+                    <h2 className="text-sm font-medium">Request a business account</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                      Admins will call the contact person before upgrading your account.
+                    </p>
+                    {businessRequest ? (
+                      <p className="mt-3 text-sm font-medium">
+                        Latest request: {businessRequest.status} · {businessRequest.businessName}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Input
+                    label="Business name"
+                    autoComplete="organization"
+                    value={businessName}
+                    onChange={(event) => setBusinessName(event.target.value)}
+                  />
+                  <Input
+                    label="Person to call"
+                    autoComplete="name"
+                    value={contactPersonName}
+                    onChange={(event) => setContactPersonName(event.target.value)}
+                  />
+                  <Input
+                    label="Phone number"
+                    type="tel"
+                    autoComplete="tel"
+                    hint="Use a number admins can call directly."
+                    value={businessPhone}
+                    onChange={(event) => setBusinessPhone(event.target.value)}
+                  />
+                  <div>
+                    <Button
+                      type="button"
+                      loading={requestingBusiness}
+                      disabled={pendingBusinessRequest}
+                      onClick={() => void requestBusiness()}
+                    >
+                      {pendingBusinessRequest ? 'Request pending' : 'Send request'}
+                    </Button>
+                  </div>
+                </section>
+              )
+            ) : null}
+
+            {section === 'account' ? (
+              <section className="app-panel grid gap-5 p-4 sm:p-6">
+                <div>
+                  <h2 className="text-sm font-medium">NexusOS ID</h2>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                    <code className="min-w-0 break-all text-xs text-slate-500 dark:text-slate-400">
+                      {profile.id}
+                    </code>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="quiet"
+                      onClick={() =>
+                        void navigator.clipboard
+                          .writeText(profile.id)
+                          .then(() => toast({ title: 'NexusOS ID copied', tone: 'success' }))
+                          .catch(() => toast({ title: 'Could not copy ID', tone: 'danger' }))
+                      }
+                    >
+                      <Copy className="size-4" /> Copy ID
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <div>
+                    <h2 className="text-sm font-medium">Sign out</h2>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Sign out of NexusOS on this device.
+                    </p>
+                  </div>
+                  <Button type="button" variant="danger" onClick={() => setLeaving(true)}>
+                    <LogOut className="size-4" /> Sign out
+                  </Button>
+                </div>
+              </section>
+            ) : null}
+          </>
+        )}
+      </div>
       <Dialog
         open={inviteOpen}
         title="Business invite link"

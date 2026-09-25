@@ -1,23 +1,27 @@
-import { ArrowLeft, MessageCircle, UserRound } from 'lucide-react'
+import { MessageCircle, UserRound } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MobileTabBar } from './MobileTabBar'
 import { haptic } from '@/shared/motion/haptics'
+import { useUnreadCount } from '@/features/chats/unreadCount'
 
 export function WorkspaceShell({
   children,
   navigation,
   accountKind = 'business',
-  accountName
+  accountName,
+  actorId
 }: PropsWithChildren<{
   navigation: ReactNode
   accountName: string
+  actorId: string
   accountKind?: 'business' | 'customer'
 }>) {
   const location = useLocation()
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
+  const unreadCount = useUnreadCount(actorId)
   const activeMobile = location.pathname.endsWith('/compose')
     ? 'compose'
     : location.pathname.endsWith('/history')
@@ -30,7 +34,10 @@ export function WorkspaceShell({
   const chatsActive = location.pathname.startsWith('/app/chats')
   const profileActive = location.pathname.startsWith('/app/profile')
   return (
-    <div className="app-canvas min-h-dvh pb-[5.75rem] lg:grid lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-3 lg:p-3 lg:pb-3">
+    <div
+      data-mobile-swipe
+      className="app-canvas min-h-dvh pb-[var(--mobile-app-bar-height)] lg:grid lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-3 lg:p-3 lg:pb-3"
+    >
       <aside className="hidden h-[calc(100dvh-1.5rem)] flex-col rounded-[var(--radius-surface)] border border-slate-200 bg-white p-4 lg:sticky lg:top-3 lg:flex dark:border-slate-800 dark:bg-slate-900">
         <Link
           to="/app/chats"
@@ -75,23 +82,22 @@ export function WorkspaceShell({
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden dark:border-slate-800 dark:bg-slate-900">
+        <header className="mobile-page-header sticky top-0 z-20 flex h-16 items-center justify-between px-4 lg:hidden">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="brand-mark size-9 text-xs">N</span>
+            <span className="text-sm font-semibold">NexusOS</span>
+          </div>
           <Link
-            to="/app/chats"
+            to={profileActive ? '/app/chats' : '/app/profile'}
             onClick={() => haptic('light')}
-            className="flex min-h-11 items-center gap-2 text-sm font-semibold"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Chats
-          </Link>
-          <span className="text-sm font-semibold">NexusOS</span>
-          <Link
-            to="/app/profile"
-            onClick={() => haptic('light')}
-            aria-label="Profile and settings"
+            aria-label={profileActive ? 'Go to chats' : 'Profile and settings'}
             className="icon-button icon-button-md icon-button-quiet"
           >
-            <UserRound className="size-4" aria-hidden="true" />
+            {profileActive ? (
+              <MessageCircle className="size-4" aria-hidden="true" />
+            ) : (
+              <UserRound className="size-4" aria-hidden="true" />
+            )}
           </Link>
         </header>
         <motion.main
@@ -111,7 +117,12 @@ export function WorkspaceShell({
         <MobileTabBar
           activeId={activeMobile}
           items={[
-            { id: 'chats', label: 'Chats', icon: 'chats' },
+            {
+              id: 'chats',
+              label: 'Chats',
+              icon: 'chats',
+              ...(unreadCount ? { badge: unreadCount } : {})
+            },
             ...(accountKind === 'business'
               ? [
                   { id: 'broadcasts', label: 'Lists', icon: 'broadcasts' as const },

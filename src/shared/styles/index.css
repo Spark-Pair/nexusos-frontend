@@ -41,6 +41,7 @@
   --color-muted: #626e67;
   --radius-control: 0.875rem;
   --radius-surface: 1.125rem;
+  --mobile-app-bar-height: calc(3.5rem + max(0.35rem, env(safe-area-inset-bottom)));
   --border-subtle: #e3e7e5;
   --border-control: #cdd4d0;
   --border-control-hover: #87938c;
@@ -127,6 +128,36 @@
   .workspace-nav-link-active {
     background-color: color-mix(in srgb, var(--color-brand-500) 11%, transparent);
     color: var(--color-brand-700);
+  }
+
+  .mobile-app-bar {
+    border-top: 1px solid var(--border-subtle);
+    background: var(--color-surface);
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-app-bar-inner {
+    width: min(100%, 36rem);
+    margin-inline: auto;
+    padding-inline: 0.5rem;
+  }
+
+  .mobile-app-tab {
+    color: var(--color-muted);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-app-tab-active {
+    color: var(--color-brand-700);
+  }
+
+  .mobile-app-tab-indicator {
+    background: color-mix(in srgb, var(--color-brand-500) 13%, transparent);
+  }
+
+  .mobile-page-header {
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--color-canvas);
   }
 
   .chat-filter {
@@ -286,20 +317,20 @@
     @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900;
   }
 
-  .profile-settings > aside {
-    height: fit-content;
+  .settings-category-group + .settings-category-group {
+    border-top: 1px solid var(--border-subtle);
   }
 
-  .profile-settings-content {
-    display: grid;
-    align-content: start;
+  .settings-category-heading {
+    @apply px-4 pb-1 pt-4 text-[10px] font-semibold uppercase text-slate-500 sm:px-6;
   }
 
-  @media (min-width: 1024px) {
-    .profile-settings > aside {
-      position: sticky;
-      top: 2rem;
-    }
+  .settings-category-row {
+    @apply flex min-h-[4.25rem] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:px-6;
+  }
+
+  .settings-category-row + .settings-category-row {
+    border-top: 1px solid var(--border-subtle);
   }
 
   .ui-surface {
@@ -685,6 +716,9 @@
   }
 }
 @media (max-width: 1023px) {
+  [data-mobile-swipe] {
+    touch-action: pan-y;
+  }
   .inbox-shell {
     gap: 0;
     padding: 0;

@@ -1,6 +1,7 @@
-export type HapticIntent = 'light' | 'medium' | 'success' | 'warning'
+export type HapticIntent = 'selection' | 'light' | 'medium' | 'success' | 'warning'
 
 const patterns: Record<HapticIntent, number | number[]> = {
+  selection: 5,
   light: 8,
   medium: 14,
   success: [8, 36, 12],

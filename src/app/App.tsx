@@ -41,6 +41,7 @@ export function App() {
             <Route path="/app/chats" element={<ChatsPage />} />
             <Route path="/app/chats/:conversationId" element={<ChatsPage />} />
             <Route path="/app/profile" element={<ProfilePage />} />
+            <Route path="/app/profile/:section" element={<ProfilePage />} />
           </Route>
           <Route element={<BusinessRoute />}>
             <Route

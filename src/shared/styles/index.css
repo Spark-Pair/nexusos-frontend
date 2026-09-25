@@ -265,7 +265,19 @@
   }
 
   .app-panel {
-    @apply min-w-0 rounded-[var(--radius-surface)] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900;
+    @apply ui-surface min-w-0;
+  }
+
+  .ui-surface {
+    @apply rounded-[var(--radius-surface)] border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900;
+  }
+
+  .ui-control {
+    @apply rounded-[var(--radius-control)];
+  }
+
+  .ui-pill {
+    @apply rounded-full;
   }
 
   .floating-nav,
@@ -275,7 +287,7 @@
   }
 
   .chat-list-item {
-    @apply flex w-full items-center gap-3 rounded-[1.25rem] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 active:scale-[0.985] dark:hover:bg-slate-800;
+    @apply flex w-full items-center gap-3 ui-control border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 active:scale-[0.985] dark:hover:bg-slate-800;
   }
 
   .chat-list-item-selected {

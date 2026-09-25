@@ -294,6 +294,10 @@
     @apply bg-blue-50 dark:bg-blue-950/70;
   }
 
+  .chat-list-item:has([data-chat-actions-menu] :active) {
+    transform: none !important;
+  }
+
   .message-bubble {
     @apply max-w-[min(84%,38rem)] break-words rounded-[1.35rem] border px-3.5 py-2.5 text-[0.95rem] leading-6;
     box-shadow: 0 1px 0 rgb(18 24 21 / 5%);

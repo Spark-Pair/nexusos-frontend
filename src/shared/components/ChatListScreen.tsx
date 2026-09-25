@@ -200,14 +200,16 @@ export function ChatListScreen({
                     ) : null}
                   </span>
                   {onQuickAction ? (
-                    <ActionMenu
-                      label="Chat actions"
-                      direction="vertical"
-                      items={quickActions}
-                      onAction={(id) =>
-                        onQuickAction(chat, id as 'pin' | 'archive' | 'mute')
-                      }
-                    />
+                    <span data-chat-actions-menu>
+                      <ActionMenu
+                        label="Chat actions"
+                        direction="vertical"
+                        items={quickActions}
+                        onAction={(id) =>
+                          onQuickAction(chat, id as 'pin' | 'archive' | 'mute')
+                        }
+                      />
+                    </span>
                   ) : null}
                 </span>
               </div>

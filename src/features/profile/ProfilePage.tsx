@@ -27,6 +27,7 @@ import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offline
 import { offlineStore } from '@/features/chats/offlineStore'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { inviteApi } from '@/features/invites/inviteApi'
+import { haptic } from '@/shared/motion/haptics'
 
 export default function ProfilePage() {
   const { session, signOut, serverConfirmed } = useAuthSession()
@@ -52,15 +53,27 @@ export default function ProfilePage() {
   const businessNavigation =
     session!.data.account_kind === 'business' ? (
       <>
-        <Link to="/business/broadcasts" className="workspace-nav-link">
+        <Link
+          to="/business/broadcasts/lists"
+          onClick={() => haptic('light')}
+          className="workspace-nav-link"
+        >
           <ListChecks className="size-[18px]" aria-hidden="true" />
           Broadcast lists
         </Link>
-        <Link to="/business/broadcasts?view=compose" className="workspace-nav-link">
+        <Link
+          to="/business/broadcasts/compose"
+          onClick={() => haptic('light')}
+          className="workspace-nav-link"
+        >
           <Megaphone className="size-[18px]" aria-hidden="true" />
           New broadcast
         </Link>
-        <Link to="/business/broadcasts?view=history" className="workspace-nav-link">
+        <Link
+          to="/business/broadcasts/history"
+          onClick={() => haptic('light')}
+          className="workspace-nav-link"
+        >
           <History className="size-[18px]" aria-hidden="true" />
           Broadcast history
         </Link>
@@ -200,7 +213,7 @@ export default function ProfilePage() {
     >
       <form
         onSubmit={(e) => void save(e)}
-        className="grid w-full gap-3 lg:grid-cols-[320px_minmax(0,1fr)]"
+        className="profile-settings grid w-full gap-3 lg:grid-cols-[260px_minmax(0,1fr)]"
       >
         <aside className="app-panel p-5">
           <Button type="button" variant="quiet" onClick={() => void navigate('/app/chats')}>
@@ -220,7 +233,7 @@ export default function ProfilePage() {
               Your public name, username and privacy controls for chats.
             </p>
           </div>
-          <div className="mt-8 min-w-0 rounded-2xl border border-slate-300 p-3 text-sm dark:border-slate-700">
+          <div className="mt-8 min-w-0 rounded-xl border border-slate-300 p-3 text-sm dark:border-slate-700">
             <p className="font-semibold">NexusOS ID</p>
             <div className="mt-1 flex min-w-0 items-center gap-2">
               <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -248,15 +261,15 @@ export default function ProfilePage() {
             </div>
           </div>
         </aside>
-        <section className="app-panel p-4 sm:p-6 lg:p-8">
+        <section className="profile-settings-content app-panel p-4 sm:p-6 lg:p-8">
           <div className="mb-6">
             <h2 className="text-lg font-bold">Settings</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Manage your profile, privacy, appearance and account access from one place.
             </p>
           </div>
-          <div className="grid gap-5">
-            <section className="grid gap-4 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+          <div className="profile-settings-sections grid gap-4">
+            <section className="grid gap-4 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-[var(--color-primary)] dark:bg-emerald-950/40">
                   <UserRound className="size-5" />
@@ -294,7 +307,7 @@ export default function ProfilePage() {
                 hint="Use en, ur, or roman-ur"
               />
             </section>
-            <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                   <Moon className="size-5" />
@@ -313,7 +326,7 @@ export default function ProfilePage() {
                 <ThemeToggle />
               </div>
             </section>
-            <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                   <ShieldCheck className="size-5" />
@@ -343,7 +356,7 @@ export default function ProfilePage() {
             </section>
 
             {profile.account_kind === 'business' ? (
-              <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <section className="grid gap-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="font-bold">Invite customers</h2>
@@ -359,7 +372,7 @@ export default function ProfilePage() {
             ) : null}
 
             {profile.account_kind === 'customer' ? (
-              <section className="grid gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <section className="grid gap-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white text-[var(--color-primary)] dark:bg-emerald-950/70">
                     <BriefcaseBusiness className="size-5" />
@@ -411,7 +424,7 @@ export default function ProfilePage() {
                 </div>
               </section>
             ) : null}
-            <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                   <Bell className="size-5" />
@@ -419,7 +432,8 @@ export default function ProfilePage() {
                 <div>
                   <h2 className="font-bold">Device notifications</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Get browser notifications for new messages and broadcasts on this device.
+                    NexusOS asks for browser permission from your first workspace interaction. This
+                    device setting is shown here for status and recovery.
                   </p>
                 </div>
               </div>
@@ -442,14 +456,18 @@ export default function ProfilePage() {
                   }
                   onClick={() => void notifications.enable()}
                 >
-                  {notifications.enabled ? 'Notifications enabled' : 'Enable notifications'}
+                  {notifications.enabled
+                    ? 'Notifications enabled'
+                    : notifications.permission === 'denied'
+                      ? 'Blocked in browser settings'
+                      : 'Retry notifications'}
                 </Button>
               </div>
               {notifications.error ? (
                 <p className="text-sm font-semibold text-rose-600">{notifications.error}</p>
               ) : null}
             </section>
-            <section className="grid gap-3 rounded-2xl border border-slate-300 p-4 dark:border-slate-700">
+            <section className="grid gap-3 rounded-xl border border-slate-300 p-4 dark:border-slate-700">
               <div className="flex items-start gap-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
                   <LogOut className="size-5" />

@@ -32,7 +32,7 @@ async function setup(page: Page, customer = false) {
     offline: false
   }
   await page.addInitScript(() =>
-    sessionStorage.setItem('nexusos-session-token', 'test-business-token')
+    localStorage.setItem('nexusos-session-token', 'test-business-token')
   )
   await page.route('**/api/**', async (route) => {
     const request = route.request()
@@ -164,7 +164,8 @@ test('creates, reloads, edits and publishes to a list through the actual buttons
     title: 'A new collection',
     body: 'Our new collection is available today.'
   })
-  await page.getByRole('tab', { name: 'History' }).click()
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  await expect(page).toHaveURL(/\/business\/broadcasts\/history$/)
   await expect(page.getByRole('heading', { name: 'A new collection' })).toBeVisible()
 })
 
@@ -214,8 +215,10 @@ test('mobile list creation and deletion are usable without horizontal overflow',
   await page.getByRole('button', { name: 'Delete list', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your audience starts here' })).toBeVisible()
   expect(state.deleteCalls).toBe(1)
-  for (const tab of ['Compose', 'History', 'Lists']) {
-    await page.getByRole('tab', { name: tab, exact: true }).click()
+  for (const tab of ['Send', 'History', 'Lists']) {
+    await page.getByRole('button', { name: tab, exact: true }).click()
+    const route = tab === 'Lists' ? 'lists' : tab === 'Send' ? 'compose' : 'history'
+    await expect(page).toHaveURL(new RegExp(`/business/broadcasts/${route}$`))
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
 })

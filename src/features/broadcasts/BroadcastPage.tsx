@@ -5,9 +5,10 @@ import { SearchField } from '@shared/components/SearchField'
 import { EmptyState } from '@shared/components/states/EmptyState'
 import { useToast } from '@shared/components/toastContext'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
+import { haptic } from '@/shared/motion/haptics'
 import { History, ListChecks, Megaphone, Pencil, Plus, Send, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   broadcastApi,
   type BroadcastList,
@@ -33,8 +34,10 @@ export default function BroadcastPage() {
   const { session, serverConfirmed } = useAuthSession()
   const toast = useToast()
   const token = session!.token
-  const [params, setParams] = useSearchParams()
-  const view = views.some((item) => item.id === params.get('view')) ? params.get('view')! : 'lists'
+  const location = useLocation()
+  const navigate = useNavigate()
+  const routeView = location.pathname.split('/').at(-1)
+  const view = views.some((item) => item.id === routeView) ? routeView! : 'lists'
   const [lists, setLists] = useState<BroadcastList[]>([])
   const [customers, setCustomers] = useState<BroadcastCustomer[]>([])
   const [items, setItems] = useState<Broadcast[]>([])
@@ -122,7 +125,7 @@ export default function BroadcastPage() {
   const closeDelete = useCallback(() => {
     if (!deletePending.current) setDeleting(null)
   }, [])
-  const changeView = (next: string) => setParams({ view: next })
+  const changeView = (next: string) => void navigate(`/business/broadcasts/${next}`)
   const saveList = async (name: string, ids: string[]) => {
     if (!navigator.onLine || !serverConfirmed) {
       const saved: BroadcastList = {
@@ -207,13 +210,16 @@ export default function BroadcastPage() {
         </Button>
       </div>
     ) : null
+  if (!views.some((item) => item.id === routeView))
+    return <Navigate to="/business/broadcasts/lists" replace />
   return (
     <WorkspaceShell
       accountName={session!.data.name}
       navigation={views.map((item) => (
         <Link
           key={item.id}
-          to={`/business/broadcasts?view=${item.id}`}
+          to={`/business/broadcasts/${item.id}`}
+          onClick={() => haptic('light')}
           aria-current={view === item.id ? 'page' : undefined}
           className={`workspace-nav-link ${view === item.id ? 'workspace-nav-link-active' : ''}`}
         >
@@ -228,22 +234,38 @@ export default function BroadcastPage() {
     >
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Broadcasts</h1>
+          <h1 className="text-xl font-semibold">
+            {view === 'lists'
+              ? 'Broadcast lists'
+              : view === 'compose'
+                ? 'New broadcast'
+                : 'Broadcast history'}
+          </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Manage lists and send broadcasts directly to customer chats.
+            {view === 'lists'
+              ? 'Organize customers into reusable audiences.'
+              : view === 'compose'
+                ? 'Share an update directly in eligible customer chats.'
+                : 'Review published updates and unfinished drafts.'}
           </p>
         </div>
-        {view !== 'compose' && (
+        {view === 'lists' && (
           <Button variant="primary" onClick={() => setEditor(null)}>
             <Plus className="size-4" aria-hidden="true" />
             Create list
+          </Button>
+        )}
+        {view === 'history' && (
+          <Button variant="primary" onClick={() => changeView('compose')}>
+            <Megaphone className="size-4" aria-hidden="true" />
+            New broadcast
           </Button>
         )}
       </header>
       {notice && (
         <div
           role="status"
-          className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+          className="mb-4 flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-[color-mix(in_srgb,var(--color-brand-500)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-brand-500)_9%,transparent)] px-4 py-3 text-sm text-[var(--color-brand-700)] dark:text-slate-100"
         >
           <span>{notice}</span>
           <Button size="sm" variant="quiet" onClick={() => setNotice('')}>
@@ -251,7 +273,7 @@ export default function BroadcastPage() {
           </Button>
         </div>
       )}
-      <div hidden={view !== 'lists'}>
+      {view === 'lists' && (
         <section className="broadcast-surface">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-4 sm:p-5 dark:border-slate-700">
             <h2 className="text-base font-semibold">
@@ -285,7 +307,7 @@ export default function BroadcastPage() {
                     key={list.id}
                     className="flex flex-wrap items-center gap-3 py-4 first:pt-0 last:pb-0"
                   >
-                    <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:text-slate-400 sm:grid dark:bg-slate-800">
+                    <span className="hidden size-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-slate-100 text-slate-500 dark:text-slate-400 sm:grid dark:bg-slate-800">
                       <ListChecks className="size-5" aria-hidden="true" />
                     </span>
                     <button
@@ -346,8 +368,8 @@ export default function BroadcastPage() {
             )}
           </div>
         </section>
-      </div>
-      <div hidden={view !== 'compose'}>
+      )}
+      {view === 'compose' && (
         <section className="broadcast-surface p-4 sm:p-6">
           {showError('lists')}
           <BroadcastComposer
@@ -364,8 +386,8 @@ export default function BroadcastPage() {
             onPublished={() => void load()}
           />
         </section>
-      </div>
-      <div hidden={view !== 'history'}>
+      )}
+      {view === 'history' && (
         <section className="broadcast-surface p-4 sm:p-6">
           <h2 className="mb-5 text-base font-semibold">Broadcast history</h2>
           {showError('history')}
@@ -437,7 +459,7 @@ export default function BroadcastPage() {
             </div>
           )}
         </section>
-      </div>
+      )}
       {editor !== undefined && (
         <BroadcastListEditor
           list={editor}

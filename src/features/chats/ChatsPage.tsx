@@ -17,12 +17,14 @@ import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
 import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { haptic } from '@/shared/motion/haptics'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
   const { conversationId } = useParams()
   const { session, serverConfirmed } = useAuthSession()
+  usePushNotifications(session!.token)
   const messaging = useMessaging(session!.token, session!.data.id, serverConfirmed)
   const { open, setSelected } = messaging
   const toast = useToast()
@@ -112,22 +114,34 @@ export default function ChatsPage() {
         </Link>
         {business ? (
           <div className="mt-1 grid gap-1">
-            <Link to="/business/broadcasts" className="workspace-nav-link">
+            <Link
+              to="/business/broadcasts/lists"
+              onClick={() => haptic('light')}
+              className="workspace-nav-link"
+            >
               <ListChecks className="size-[18px]" aria-hidden="true" />
               Broadcast lists
             </Link>
-            <Link to="/business/broadcasts?view=compose" className="workspace-nav-link">
+            <Link
+              to="/business/broadcasts/compose"
+              onClick={() => haptic('light')}
+              className="workspace-nav-link"
+            >
               <Megaphone className="size-[18px]" aria-hidden="true" />
               New broadcast
             </Link>
-            <Link to="/business/broadcasts?view=history" className="workspace-nav-link">
+            <Link
+              to="/business/broadcasts/history"
+              onClick={() => haptic('light')}
+              className="workspace-nav-link"
+            >
               <History className="size-[18px]" aria-hidden="true" />
               Broadcast history
             </Link>
           </div>
         ) : null}
         <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-800">
-          <Link to="/app/profile" className="workspace-nav-link">
+          <Link to="/app/profile" onClick={() => haptic('light')} className="workspace-nav-link">
             <UserRound className="size-[18px]" aria-hidden="true" />
             <span className="min-w-0">
               <span className="block truncate">{session!.data.name}</span>
@@ -308,9 +322,9 @@ export default function ChatsPage() {
             items={mobileItems}
             onChange={(id) => {
               if (id === 'profile') void navigate('/app/profile')
-              else if (id === 'compose') void navigate('/business/broadcasts?view=compose')
-              else if (id === 'history') void navigate('/business/broadcasts?view=history')
-              else if (id === 'broadcasts') void navigate('/business/broadcasts')
+              else if (id === 'compose') void navigate('/business/broadcasts/compose')
+              else if (id === 'history') void navigate('/business/broadcasts/history')
+              else if (id === 'broadcasts') void navigate('/business/broadcasts/lists')
               else void navigate('/app/chats')
             }}
           />

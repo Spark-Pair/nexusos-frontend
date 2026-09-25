@@ -32,29 +32,33 @@ export function App() {
     >
       <ScreenTransition>
         <Routes>
-        <Route path="/" element={<Navigate to="/app/chats" replace />} />
-        <Route path="/join/:token" element={<JoinInvitePage />} />
-        <Route element={<SignedOutOnlyRoute />}>
-          <Route path="/sign-in" element={<SignInPage />} />
-        </Route>
-        <Route element={<ProtectedRoute />}>
-          <Route path="/app/chats" element={<ChatsPage />} />
-          <Route path="/app/chats/:conversationId" element={<ChatsPage />} />
-          <Route path="/app/profile" element={<ProfilePage />} />
-        </Route>
-        <Route element={<BusinessRoute />}>
-          <Route path="/business/broadcasts" element={<BroadcastPage />} />
-        </Route>
-        <Route element={<CustomerRoute />}>
-          <Route path="/app/updates" element={<Navigate to="/app/chats" replace />} />
-        </Route>
-        <Route element={<AdminRoute />}>
-          <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/moderation" element={<AdminReportsPage />} />
-        </Route>
-        <Route path="/design-system" element={<DesignSystemPage />} />
-        <Route path="/create-account" element={<Navigate to="/sign-in" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<Navigate to="/app/chats" replace />} />
+          <Route path="/join/:token" element={<JoinInvitePage />} />
+          <Route element={<SignedOutOnlyRoute />}>
+            <Route path="/sign-in" element={<SignInPage />} />
+          </Route>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/app/chats" element={<ChatsPage />} />
+            <Route path="/app/chats/:conversationId" element={<ChatsPage />} />
+            <Route path="/app/profile" element={<ProfilePage />} />
+          </Route>
+          <Route element={<BusinessRoute />}>
+            <Route
+              path="/business/broadcasts"
+              element={<Navigate to="/business/broadcasts/lists" replace />}
+            />
+            <Route path="/business/broadcasts/:view" element={<BroadcastPage />} />
+          </Route>
+          <Route element={<CustomerRoute />}>
+            <Route path="/app/updates" element={<Navigate to="/app/chats" replace />} />
+          </Route>
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/moderation" element={<AdminReportsPage />} />
+          </Route>
+          <Route path="/design-system" element={<DesignSystemPage />} />
+          <Route path="/create-account" element={<Navigate to="/sign-in" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ScreenTransition>
     </Suspense>

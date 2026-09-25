@@ -1,6 +1,14 @@
-import { forwardRef, type ButtonHTMLAttributes, type PropsWithChildren } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type ElementType,
+  type PointerEvent,
+  type PropsWithChildren
+} from 'react'
 import { motion, type MotionStyle } from 'framer-motion'
 import { haptic } from '@/shared/motion/haptics'
+
+const MotionButton = motion.button as unknown as ElementType
 
 interface ButtonProps extends PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>> {
   variant?: 'primary' | 'secondary' | 'quiet' | 'danger'
@@ -23,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref
 ) {
   return (
-    <motion.button
+    <MotionButton
       ref={ref}
       type={type}
       disabled={disabled === true || loading}
@@ -32,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       whileHover={{ y: -1, scale: 1.01 }}
       whileTap={{ scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 500, damping: 24, mass: 0.6 }}
-      onPointerDown={(event) => {
+      onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
         haptic('light')
         onPointerDown?.(event)
       }}
@@ -46,6 +54,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         />
       )}
       {loading ? 'Please wait' : children}
-    </motion.button>
+    </MotionButton>
   )
 })

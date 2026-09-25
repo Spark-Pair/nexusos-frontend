@@ -1,6 +1,14 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type ElementType,
+  type PointerEvent,
+  type ReactNode
+} from 'react'
 import { motion, type MotionStyle } from 'framer-motion'
 import { haptic } from '@/shared/motion/haptics'
+
+const MotionButton = motion.button as unknown as ElementType
 
 interface IconButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -27,7 +35,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
   ref
 ) {
   return (
-    <motion.button
+    <MotionButton
       ref={ref}
       type={type}
       aria-label={label}
@@ -35,7 +43,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       whileHover={{ scale: 1.08, rotate: 1 }}
       whileTap={{ scale: 0.86, rotate: -4 }}
       transition={{ type: 'spring', stiffness: 600, damping: 22, mass: 0.5 }}
-      onPointerDown={(event) => {
+      onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
         haptic('light')
         onPointerDown?.(event)
       }}
@@ -43,6 +51,6 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       {...props}
     >
       {icon}
-    </motion.button>
+    </MotionButton>
   )
 })

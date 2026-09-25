@@ -6,6 +6,7 @@ import { authApi, googleClientId, type AuthSession } from './authApi'
 import { AuthenticationScreen } from './AuthenticationScreen'
 import { authRoutes } from './authRoutes'
 import { useAuthSession } from './authSession'
+import { readPendingInvite } from '@/features/invites/pendingInvite'
 
 function GoogleAction({
   finish,
@@ -58,7 +59,14 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const finish = (session: AuthSession) => {
     setSession(session)
-    void navigate(session.data.is_admin ? authRoutes.adminUsers : authRoutes.chatPreview)
+    const pendingInvite = readPendingInvite()
+    void navigate(
+      pendingInvite
+        ? `/join/${pendingInvite.token}`
+        : session.data.is_admin
+          ? authRoutes.adminUsers
+          : authRoutes.chatPreview
+    )
   }
   return (
     <AuthenticationScreen

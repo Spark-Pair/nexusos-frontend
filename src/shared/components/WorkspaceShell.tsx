@@ -1,4 +1,5 @@
 import { ArrowLeft, MessageCircle, UserRound } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MobileTabBar } from './MobileTabBar'
@@ -81,7 +82,14 @@ export function WorkspaceShell({
             <UserRound className="size-4" aria-hidden="true" />
           </Link>
         </header>
-        <main className="mx-auto w-full max-w-[1400px] p-3 sm:p-6 lg:p-8">{children}</main>
+        <motion.main
+          className="mx-auto w-full max-w-[1400px] p-3 sm:p-6 lg:p-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 24, mass: 0.8 }}
+        >
+          {children}
+        </motion.main>
       </div>
       <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
         <MobileTabBar

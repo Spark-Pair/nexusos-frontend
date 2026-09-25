@@ -15,6 +15,7 @@ const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage'))
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'))
 const BroadcastPage = lazy(() => import('@/features/broadcasts/BroadcastPage'))
 const AdminReportsPage = lazy(() => import('@/features/admin/AdminReportsPage'))
+const JoinInvitePage = lazy(() => import('@/features/invites/JoinInvitePage'))
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
     >
       <Routes>
         <Route path="/" element={<Navigate to="/app/chats" replace />} />
+        <Route path="/join/:token" element={<JoinInvitePage />} />
         <Route element={<SignedOutOnlyRoute />}>
           <Route path="/sign-in" element={<SignInPage />} />
         </Route>

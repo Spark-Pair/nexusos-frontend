@@ -1,4 +1,5 @@
 import { ActionMenu } from '@shared/components/ActionMenu'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Button } from '@shared/components/Button'
 import {
   ChatListScreen,
@@ -23,6 +24,7 @@ import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
 import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
+import { haptic } from '@/shared/motion/haptics'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
@@ -34,7 +36,18 @@ export default function ChatsPage() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<ChatFilter>('all')
   const [discovering, setDiscovering] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false
+  )
+  const reducedMotion = useReducedMotion()
   const closeDiscover = useCallback(() => setDiscovering(false), [])
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)')
+    const update = () => setIsMobile(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
   useEffect(() => {
     if (conversationId) void open(conversationId).catch(() => undefined)
     else setSelected(undefined)
@@ -82,7 +95,7 @@ export default function ChatsPage() {
   return (
     <main
       className={
-        'app-canvas inbox-shell inbox-shell-with-sidebar ' +
+        'app-canvas inbox-shell inbox-shell-with-sidebar overflow-x-hidden ' +
         (!conversationId ? 'max-lg:pb-[5.75rem]' : '')
       }
     >
@@ -168,7 +181,10 @@ export default function ChatsPage() {
           {...(business ? { onCompose: () => setDiscovering(true) } : {})}
           onActiveTabChange={() => undefined}
           onFilterChange={setFilter}
-          onOpenConversation={(chat) => void navigate('/app/chats/' + chat.id)}
+          onOpenConversation={(chat) => {
+            haptic('light')
+            void navigate('/app/chats/' + chat.id)
+          }}
           onQuickAction={(chat, action) => {
             const conversation = messaging.conversations.find((item) => item.id === chat.id)
             if (!conversation) return
@@ -199,13 +215,24 @@ export default function ChatsPage() {
           }
         />
       </aside>
-      <div className={'inbox-conversation ' + (conversationId ? 'flex' : 'hidden lg:flex')}>
+      <AnimatePresence initial={false} mode="sync">
+        <motion.div
+          key={conversationId ?? 'chat-empty'}
+          className={'inbox-conversation ' + (conversationId ? 'flex' : 'hidden lg:flex')}
+          initial={isMobile && conversationId && !reducedMotion ? { x: '100%' } : false}
+          animate={{ x: 0 }}
+          {...(isMobile && !reducedMotion ? { exit: { x: '100%' } } : {})}
+          transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }}
+        >
         {messaging.selected?.conversation.id === conversationId && messaging.selected ? (
           <ConversationPanel
             key={conversationId}
             detail={messaging.selected}
             currentUserId={session!.data.id}
-            onBack={() => void navigate('/app/chats')}
+            onBack={() => {
+              haptic('light')
+              void navigate('/app/chats')
+            }}
             onRespond={messaging.respond}
             onSend={messaging.send}
             counterpartTyping={messaging.counterpartTyping}
@@ -254,7 +281,8 @@ export default function ChatsPage() {
             )}
           </section>
         )}
-      </div>
+        </motion.div>
+      </AnimatePresence>
       <Dialog
         open={discovering}
         title="New chat"

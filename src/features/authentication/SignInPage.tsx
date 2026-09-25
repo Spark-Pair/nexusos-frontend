@@ -6,7 +6,7 @@ import { authApi, googleClientId, type AuthSession } from './authApi'
 import { AuthenticationScreen } from './AuthenticationScreen'
 import { authRoutes } from './authRoutes'
 import { useAuthSession } from './authSession'
-import { readPendingInvite } from '@/features/invites/pendingInvite'
+import { clearPendingInvite, readPendingInvite } from '@/features/invites/pendingInvite'
 
 function GoogleAction({
   finish,
@@ -19,6 +19,7 @@ function GoogleAction({
   setLoading: (loading: boolean) => void
   loading: boolean
 }) {
+  const pendingInvite = readPendingInvite()
   return (
     <div className="grid justify-items-center gap-2">
       <GoogleLogin
@@ -29,7 +30,7 @@ function GoogleAction({
           }
           setLoading(true)
           void authApi
-            .google(response.credential, 'customer')
+            .google(response.credential, 'customer', pendingInvite?.token)
             .then(finish)
             .catch((cause: unknown) =>
               setError(cause instanceof Error ? cause.message : 'Google sign-in failed.')
@@ -59,6 +60,11 @@ function SignInForm() {
   const [loading, setLoading] = useState(false)
   const finish = (session: AuthSession) => {
     setSession(session)
+    if (session.invite_connection) {
+      clearPendingInvite()
+      void navigate(`/app/chats/${session.invite_connection.connection.id}`)
+      return
+    }
     const pendingInvite = readPendingInvite()
     void navigate(
       pendingInvite

@@ -14,7 +14,28 @@ const userSchema = z.object({
 export const authSessionSchema = z.object({
   data: userSchema,
   token: z.string(),
-  requires_phone: z.boolean()
+  requires_phone: z.boolean(),
+  invite_connection: z
+    .object({
+      alreadyConnected: z.boolean(),
+      business: z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        username: z.string(),
+        accountKind: z.literal('business'),
+        followed: z.boolean()
+      }),
+      connection: z.object({
+        id: z.string().uuid(),
+        customerId: z.string().uuid(),
+        businessId: z.string().uuid(),
+        invitedBy: z.string().uuid(),
+        status: z.enum(['pending', 'accepted', 'rejected']),
+        createdAt: z.coerce.date(),
+        updatedAt: z.coerce.date()
+      })
+    })
+    .optional()
 })
 export type AuthSession = z.infer<typeof authSessionSchema>
 const restoredSessionSchema = z.object({
@@ -56,11 +77,16 @@ async function request(path: string, body: unknown, token?: string): Promise<Aut
 
 const deviceName = `NexusOS Web (${navigator.platform || 'browser'})`
 export const authApi = {
-  google: (accessToken: string, accountKind: 'customer' | 'business') =>
+  google: (
+    accessToken: string,
+    accountKind: 'customer' | 'business',
+    pendingInviteToken?: string
+  ) =>
     request('/auth/google/exchange', {
       id_token: accessToken,
       account_kind: accountKind,
-      device_name: deviceName
+      device_name: deviceName,
+      ...(pendingInviteToken ? { pending_invite_token: pendingInviteToken } : {})
     }),
   restore: async (token: string): Promise<AuthSession> => {
     if (!apiUrl) throw new Error('The NexusOS API URL is not configured.')

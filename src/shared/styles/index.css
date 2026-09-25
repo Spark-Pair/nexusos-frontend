@@ -287,15 +287,11 @@
   }
 
   .chat-list-item {
-    @apply flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 active:scale-[0.985] dark:hover:bg-slate-800;
+    @apply flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-transparent bg-transparent px-3 py-3 text-left transition duration-200 hover:bg-slate-100 dark:hover:bg-slate-800;
   }
 
   .chat-list-item-selected {
     @apply bg-blue-50 dark:bg-blue-950/70;
-  }
-
-  .chat-list-item:has([data-chat-actions-menu] :active) {
-    transform: none !important;
   }
 
   .message-bubble {
@@ -612,7 +608,7 @@
     @apply border-transparent bg-transparent hover:border-transparent hover:bg-slate-50 dark:border-transparent dark:bg-transparent dark:hover:border-transparent dark:hover:bg-slate-900;
   }
   .chat-list-item-selected {
-    @apply border-transparent bg-emerald-50 hover:bg-emerald-50 dark:border-transparent dark:bg-emerald-950/60 dark:hover:bg-emerald-950/60;
+    @apply border-transparent bg-emerald-100/80 hover:bg-emerald-50 dark:border-transparent dark:bg-emerald-900/55 dark:hover:bg-emerald-900/70;
   }
   .toast-stack {
     @apply pointer-events-none fixed bottom-5 right-5 z-[100] flex w-[calc(100%-2.5rem)] max-w-sm flex-col gap-2;
@@ -623,7 +619,6 @@
   .button:active:not(:disabled),
   .icon-button:active:not(:disabled),
   .spring-interaction:active:not(:disabled),
-  .chat-list-item:active,
   .inbox-rail-link:active {
     transform: scale(0.97);
   }

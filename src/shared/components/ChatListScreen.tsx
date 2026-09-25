@@ -146,46 +146,35 @@ export function ChatListScreen({
                 key={chat.id}
                 aria-current={selectedId === chat.id ? 'true' : undefined}
                 className={`chat-list-item group relative ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
+                onClick={() => onOpenConversation(chat)}
               >
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  onClick={() => onOpenConversation(chat)}
-                >
+                <span className='rounded-[1.15rem]' >
+                  <Avatar label={chat.name} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
+                      {chat.name}
+                    </span>
+                    {chat.pinned ? (
+                      <Pin
+                        aria-label="Pinned"
+                        className="size-3.5 fill-slate-400 text-slate-400"
+                      />
+                    ) : null}
+                    {chat.verified ? (
+                      <BadgeCheck
+                        aria-label="Verified"
+                        className="size-4 fill-blue-600 text-white dark:text-slate-950"
+                      />
+                    ) : null}
+                  </span>
                   <span
-                    className={
-                      selectedId === chat.id
-                        ? 'rounded-[1.15rem] ring-2 ring-emerald-500/20'
-                        : 'rounded-[1.15rem]'
-                    }
+                    className={`mt-1 block truncate text-xs ${chat.unreadCount ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}
                   >
-                    <Avatar label={chat.name} />
+                    {chat.message}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[15px] font-bold tracking-[-0.01em]">
-                        {chat.name}
-                      </span>
-                      {chat.pinned ? (
-                        <Pin
-                          aria-label="Pinned"
-                          className="size-3.5 fill-slate-400 text-slate-400"
-                        />
-                      ) : null}
-                      {chat.verified ? (
-                        <BadgeCheck
-                          aria-label="Verified"
-                          className="size-4 fill-blue-600 text-white dark:text-slate-950"
-                        />
-                      ) : null}
-                    </span>
-                    <span
-                      className={`mt-1 block truncate text-xs ${chat.unreadCount ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}
-                    >
-                      {chat.message}
-                    </span>
-                  </span>
-                </button>
+                </span>
                 <span className="flex shrink-0 items-center gap-1">
                   <span className="flex min-w-11 flex-col items-end gap-2">
                     <span
@@ -200,17 +189,21 @@ export function ChatListScreen({
                     ) : null}
                   </span>
                   {onQuickAction ? (
-                    <span data-chat-actions-menu>
-                      <ActionMenu
-                        label="Chat actions"
-                        direction="vertical"
-                        items={quickActions}
-                        onAction={(id) =>
-                          onQuickAction(chat, id as 'pin' | 'archive' | 'mute')
-                        }
-                      />
-                    </span>
-                  ) : null}
+                  <span
+                    data-chat-actions-menu
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <ActionMenu
+                      label="Chat actions"
+                      direction="vertical"
+                      items={quickActions}
+                      onAction={(id) =>
+                        onQuickAction(chat, id as 'pin' | 'archive' | 'mute')
+                      }
+                    />
+                  </span>
+                ) : null}
                 </span>
               </div>
             )

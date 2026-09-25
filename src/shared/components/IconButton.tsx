@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type MotionStyle } from 'framer-motion'
 import { haptic } from '@/shared/motion/haptics'
 
 interface IconButtonProps extends Omit<
@@ -39,7 +39,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         haptic('light')
         onPointerDown?.(event)
       }}
-      {...(style ? { style } : {})}
+      style={style as MotionStyle}
       {...props}
     >
       {icon}

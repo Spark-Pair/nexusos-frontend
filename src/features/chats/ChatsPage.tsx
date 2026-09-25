@@ -10,14 +10,7 @@ import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
-import {
-  History,
-  ListChecks,
-  Megaphone,
-  MessageCircle,
-  RefreshCw,
-  UserRound
-} from 'lucide-react'
+import { History, ListChecks, Megaphone, MessageCircle, RefreshCw, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ConnectionsPanel } from './ConnectionsPanel'
@@ -145,10 +138,7 @@ export default function ChatsPage() {
           </Link>
         </div>
       </nav>
-      <aside
-        aria-label="Chat inbox"
-        className={'inbox-list ' + (conversationId ? 'hidden lg:flex' : 'flex')}
-      >
+      <aside aria-label="Chat inbox" className="inbox-list flex">
         <ChatListScreen
           mode="app"
           activeTab="chats"
@@ -218,69 +208,76 @@ export default function ChatsPage() {
       <AnimatePresence initial={false} mode="sync">
         <motion.div
           key={conversationId ?? 'chat-empty'}
-          className={'inbox-conversation ' + (conversationId ? 'flex' : 'hidden lg:flex')}
+          className={
+            'inbox-conversation ' +
+            (conversationId ? 'flex inbox-conversation-mobile-overlay' : 'hidden lg:flex')
+          }
           initial={isMobile && conversationId && !reducedMotion ? { x: '100%' } : false}
           animate={{ x: 0 }}
           {...(isMobile && !reducedMotion ? { exit: { x: '100%' } } : {})}
-          transition={{ type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { type: 'spring', stiffness: 360, damping: 30, mass: 0.8 }
+          }
         >
-        {messaging.selected?.conversation.id === conversationId && messaging.selected ? (
-          <ConversationPanel
-            key={conversationId}
-            detail={messaging.selected}
-            currentUserId={session!.data.id}
-            onBack={() => {
-              haptic('light')
-              void navigate('/app/chats')
-            }}
-            onRespond={messaging.respond}
-            onSend={messaging.send}
-            counterpartTyping={messaging.counterpartTyping}
-            onTyping={messaging.setTyping}
-            archived={current?.archived ?? false}
-            muted={current?.muted ?? false}
-            pinned={current?.pinned ?? false}
-            onStateChange={messaging.setConversationState}
-            queued={messaging.queued.filter((item) => item.conversationId === conversationId)}
-            onRetry={messaging.retry}
-            onDiscard={messaging.discard}
-            onReact={messaging.react}
-            onEditMessage={messaging.editMessage}
-            onDeleteMessage={messaging.deleteMessage}
-            onForwardMessages={messaging.forwardMessages}
-            forwardTargets={messaging.conversations}
-            starred={messaging.starred}
-            onToggleStar={messaging.toggleStar}
-            offline={!serverConfirmed}
-            onReportBroadcast={messaging.reportBroadcast}
-          />
-        ) : (
-          <section className="inbox-empty">
-            <MessageCircle className="size-12 text-blue-600" strokeWidth={1.25} />
-            <h1 className="mt-5 text-2xl font-semibold tracking-tight">
-              {messaging.opening
-                ? 'Opening chat...'
-                : conversationId
-                  ? 'Unable to open chat'
-                  : 'NexusOS for your everyday conversations'}
-            </h1>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {conversationId
-                ? messaging.error
-                : 'Messages and broadcasts, together in your inbox. Choose a chat to get started.'}
-            </p>
-            {conversationId && (
-              <Button className="mt-5" onClick={() => void navigate('/app/chats')}>
-                Back to chats
-              </Button>
-            )}
-            {!conversationId && (
-              <p className="mt-8 text-xs text-slate-500">
-                Your recently opened chats are available offline on this device.
+          {messaging.selected?.conversation.id === conversationId && messaging.selected ? (
+            <ConversationPanel
+              key={conversationId}
+              detail={messaging.selected}
+              currentUserId={session!.data.id}
+              onBack={() => {
+                haptic('light')
+                void navigate('/app/chats')
+              }}
+              onRespond={messaging.respond}
+              onSend={messaging.send}
+              counterpartTyping={messaging.counterpartTyping}
+              onTyping={messaging.setTyping}
+              archived={current?.archived ?? false}
+              muted={current?.muted ?? false}
+              pinned={current?.pinned ?? false}
+              onStateChange={messaging.setConversationState}
+              queued={messaging.queued.filter((item) => item.conversationId === conversationId)}
+              onRetry={messaging.retry}
+              onDiscard={messaging.discard}
+              onReact={messaging.react}
+              onEditMessage={messaging.editMessage}
+              onDeleteMessage={messaging.deleteMessage}
+              onForwardMessages={messaging.forwardMessages}
+              forwardTargets={messaging.conversations}
+              starred={messaging.starred}
+              onToggleStar={messaging.toggleStar}
+              offline={!serverConfirmed}
+              onReportBroadcast={messaging.reportBroadcast}
+            />
+          ) : (
+            <section className="inbox-empty">
+              <MessageCircle className="size-12 text-blue-600" strokeWidth={1.25} />
+              <h1 className="mt-5 text-2xl font-semibold tracking-tight">
+                {messaging.opening
+                  ? 'Opening chat...'
+                  : conversationId
+                    ? 'Unable to open chat'
+                    : 'NexusOS for your everyday conversations'}
+              </h1>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {conversationId
+                  ? messaging.error
+                  : 'Messages and broadcasts, together in your inbox. Choose a chat to get started.'}
               </p>
-            )}
-          </section>
-        )}
+              {conversationId && (
+                <Button className="mt-5" onClick={() => void navigate('/app/chats')}>
+                  Back to chats
+                </Button>
+              )}
+              {!conversationId && (
+                <p className="mt-8 text-xs text-slate-500">
+                  Your recently opened chats are available offline on this device.
+                </p>
+              )}
+            </section>
+          )}
         </motion.div>
       </AnimatePresence>
       <Dialog

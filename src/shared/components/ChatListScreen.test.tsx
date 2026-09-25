@@ -53,9 +53,20 @@ describe('ChatListScreen', () => {
       target: { value: 'studio' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'unread' }))
-    fireEvent.click(screen.getByRole('button', { name: /studio one/i }))
+    fireEvent.click(screen.getByText('Studio One'))
     expect(props.onQueryChange).toHaveBeenCalledWith('studio')
     expect(props.onFilterChange).toHaveBeenCalledWith('unread')
     expect(props.onOpenConversation).toHaveBeenCalledWith(conversations[0])
+  })
+
+  it('keeps chat actions isolated from opening the chat row', () => {
+    const onQuickAction = vi.fn()
+    const props = renderScreen({ onQuickAction })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chat actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pin chat' }))
+
+    expect(onQuickAction).toHaveBeenCalledWith(conversations[0], 'pin')
+    expect(props.onOpenConversation).not.toHaveBeenCalled()
   })
 })

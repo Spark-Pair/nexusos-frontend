@@ -1,6 +1,7 @@
 import { MessageCircle, UserRound } from 'lucide-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AppSidebar } from './AppSidebar'
 import { MobileTabBar } from './MobileTabBar'
 import { useUnreadCount } from '@/features/chats/unreadCount'
 import { haptic } from '@/shared/motion/haptics'
@@ -36,33 +37,10 @@ export function WorkspaceShell({
       data-mobile-swipe
       className="app-canvas min-h-dvh pb-[var(--mobile-app-bar-height)] lg:grid lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-3 lg:p-3 lg:pb-3"
     >
-      <aside className="hidden h-[calc(100dvh-1.5rem)] flex-col rounded-[var(--radius-surface)] border border-slate-200 bg-white p-4 lg:sticky lg:top-3 lg:flex dark:border-slate-800 dark:bg-slate-900">
-        <Link
-          to="/app/chats"
-          onClick={() => haptic('light')}
-          className="flex items-center gap-3 px-2 py-3"
-        >
-          <span className="brand-mark">N</span>
-          <span className="text-sm font-semibold">
-            NexusOS
-            <span className="mt-0.5 block text-xs font-normal text-slate-500 dark:text-slate-400">
-              {accountKind === 'business' ? 'Business workspace' : 'Customer inbox'}
-            </span>
-          </span>
-        </Link>
-        <nav aria-label="Workspace" className="mt-7 grid gap-1">
-          <Link
-            to="/app/chats"
-            onClick={() => haptic('light')}
-            className={'workspace-nav-link ' + (chatsActive ? 'workspace-nav-link-active' : '')}
-            aria-current={chatsActive ? 'page' : undefined}
-          >
-            <MessageCircle className="size-[18px]" aria-hidden="true" />
-            Chats
-          </Link>
-          {accountKind === 'business' ? navigation : null}
-        </nav>
-        <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-800">
+      <AppSidebar
+        brandHref="/app/chats"
+        roleLabel={accountKind === 'business' ? 'Business workspace' : 'Customer inbox'}
+        footer={
           <Link
             to="/app/profile"
             onClick={() => haptic('light')}
@@ -77,8 +55,19 @@ export function WorkspaceShell({
               </span>
             </span>
           </Link>
-        </div>
-      </aside>
+        }
+      >
+        <Link
+          to="/app/chats"
+          onClick={() => haptic('light')}
+          className={'workspace-nav-link ' + (chatsActive ? 'workspace-nav-link-active' : '')}
+          aria-current={chatsActive ? 'page' : undefined}
+        >
+          <MessageCircle className="size-[18px]" aria-hidden="true" />
+          Chats
+        </Link>
+        {accountKind === 'business' ? navigation : null}
+      </AppSidebar>
       <div className="min-w-0">
         <header className="mobile-page-header sticky top-0 z-20 flex h-16 items-center justify-between px-4 lg:hidden">
           <div className="flex min-w-0 items-center gap-2.5">

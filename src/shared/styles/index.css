@@ -701,6 +701,7 @@
   .inbox-shell-with-sidebar {
     @apply lg:grid lg:grid-cols-[216px_360px_minmax(0,1fr)] xl:grid-cols-[224px_380px_minmax(0,1fr)];
   }
+  .workspace-sidebar,
   .inbox-sidebar {
     @apply hidden h-[calc(100dvh-1.5rem)] min-h-0 flex-col rounded-[var(--radius-surface)] border border-slate-200 bg-white p-4 lg:flex dark:border-slate-800 dark:bg-slate-900;
   }

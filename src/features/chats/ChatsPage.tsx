@@ -1,4 +1,5 @@
 import { ActionMenu } from '@shared/components/ActionMenu'
+import { AppSidebar } from '@shared/components/AppSidebar'
 import { Button } from '@shared/components/Button'
 import {
   ChatListScreen,
@@ -208,26 +209,32 @@ export default function ChatsPage() {
         (!conversationId ? 'max-lg:pb-[var(--mobile-app-bar-height)]' : '')
       }
     >
-      <nav aria-label="Workspace" className="inbox-sidebar">
-        <Link to="/app/chats" className="flex items-center gap-3 px-2 py-3">
-          <span className="brand-mark">N</span>
-          <span className="text-sm font-semibold">
-            NexusOS
-            <span className="mt-0.5 block text-xs font-normal text-slate-500 dark:text-slate-400">
-              {business ? 'Business workspace' : 'Customer inbox'}
+      <AppSidebar
+        brandHref="/app/chats"
+        roleLabel={business ? 'Business workspace' : 'Customer inbox'}
+        footer={
+          <Link to="/app/profile" onClick={() => haptic('light')} className="workspace-nav-link">
+            <UserRound className="size-[18px]" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="block truncate">{session!.data.name}</span>
+              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                Profile & settings
+              </span>
             </span>
-          </span>
-        </Link>
+          </Link>
+        }
+      >
         <Link
           to="/app/chats"
-          className="workspace-nav-link workspace-nav-link-active mt-7"
+          className="workspace-nav-link workspace-nav-link-active"
+          onClick={() => haptic('light')}
           aria-current="page"
         >
           <MessageCircle className="size-[18px]" aria-hidden="true" />
           Chats
         </Link>
         {business ? (
-          <div className="mt-1 grid gap-1">
+          <div className="grid gap-1">
             <Link
               to="/business/broadcasts/lists"
               onClick={() => haptic('light')}
@@ -254,18 +261,7 @@ export default function ChatsPage() {
             </Link>
           </div>
         ) : null}
-        <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-800">
-          <Link to="/app/profile" onClick={() => haptic('light')} className="workspace-nav-link">
-            <UserRound className="size-[18px]" aria-hidden="true" />
-            <span className="min-w-0">
-              <span className="block truncate">{session!.data.name}</span>
-              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                Profile & settings
-              </span>
-            </span>
-          </Link>
-        </div>
-      </nav>
+      </AppSidebar>
       <aside aria-label="Chat inbox" className="inbox-list flex">
         <ChatListScreen
           mode="app"

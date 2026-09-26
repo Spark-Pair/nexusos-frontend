@@ -1,4 +1,3 @@
-import { motion, useReducedMotion } from 'framer-motion'
 import { MessageCircle, UserRound } from 'lucide-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -20,7 +19,6 @@ export function WorkspaceShell({
 }>) {
   const location = useLocation()
   const navigate = useNavigate()
-  const reducedMotion = useReducedMotion()
   const unreadCount = useUnreadCount(actorId)
   const activeMobile = location.pathname.endsWith('/compose')
     ? 'compose'
@@ -100,18 +98,7 @@ export function WorkspaceShell({
             )}
           </Link>
         </header>
-        <motion.main
-          className="mx-auto w-full max-w-[1400px] p-3 sm:p-5 lg:p-6"
-          initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-          {...(reducedMotion ? {} : { animate: { opacity: 1, y: 0 } })}
-          transition={
-            reducedMotion
-              ? { duration: 0 }
-              : { type: 'spring', stiffness: 260, damping: 28, mass: 0.72 }
-          }
-        >
-          {children}
-        </motion.main>
+        <main className="mx-auto w-full max-w-[1400px] p-3 sm:p-5 lg:p-6">{children}</main>
       </div>
       <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
         <MobileTabBar

@@ -1,4 +1,3 @@
-import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { AppIcon, type AppIconName } from './AppIcon'
 import { haptic } from '@/shared/motion/haptics'
@@ -20,7 +19,6 @@ export function MobileTabBar({
   items: MobileTabItem[]
   onChange: (id: string) => void
 }) {
-  const reducedMotion = useReducedMotion()
   const onChangeRef = useRef(onChange)
   const itemsRef = useRef(items)
   const activeIdRef = useRef(activeId)
@@ -95,15 +93,7 @@ export function MobileTabBar({
               >
                 <span className="relative grid size-8 place-items-center">
                   {active ? (
-                    <motion.span
-                      layoutId="mobile-active-tab-indicator"
-                      className="mobile-app-tab-indicator absolute inset-0 rounded-[var(--radius-control)]"
-                      transition={
-                        reducedMotion
-                          ? { duration: 0 }
-                          : { type: 'spring', stiffness: 420, damping: 32, mass: 0.72 }
-                      }
-                    />
+                    <span className="mobile-app-tab-indicator absolute inset-0 rounded-[var(--radius-control)]" />
                   ) : null}
                   <AppIcon name={item.icon} className="relative z-10 size-5" />
                 </span>

@@ -15,6 +15,7 @@ const routeIndex = (pathname: string) => {
       'appearance',
       'notifications',
       'business',
+      'sync',
       'account'
     ].indexOf(section ?? '')
     return sectionIndex < 0 ? 4 : sectionIndex + 5
@@ -29,9 +30,15 @@ export function ScreenTransition({ children }: PropsWithChildren) {
   const reducedMotion = useReducedMotion()
   const previousPath = useRef(location.pathname)
   const direction = routeIndex(location.pathname) >= routeIndex(previousPath.current) ? 1 : -1
+  const isShellRoute = (pathname: string) => /^\/(?:app|business|admin)(?:\/|$)/u.test(pathname)
   previousPath.current = location.pathname
   const isChatRoute = /^\/app\/chats(?:\/[^/]+)?$/u.test(location.pathname)
-  const transitionKey = isChatRoute ? '/app/chats' : location.pathname
+  const shellRoute = isShellRoute(location.pathname)
+  const transitionKey = shellRoute
+    ? 'authenticated-workspace'
+    : isChatRoute
+      ? '/app/chats'
+      : location.pathname
   return (
     <div className="grid min-h-dvh">
       <AnimatePresence initial={false} mode="sync" custom={direction}>

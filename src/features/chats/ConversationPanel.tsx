@@ -597,7 +597,7 @@ export function ConversationPanel({
       aria-label={'Conversation with ' + detail.counterpart.name}
       className="conversation-panel"
     >
-      <header className="conversation-header flex min-h-16 items-center gap-2 px-2 sm:gap-3 sm:px-4">
+      <header className="conversation-header m-2 flex min-h-16 items-center gap-2 px-2 sm:m-3 sm:gap-3 sm:px-4">
         <IconButton
           onClick={onBack}
           label="Back to chats"
@@ -614,7 +614,7 @@ export function ConversationPanel({
           <Avatar label={detail.counterpart.name} />
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">{detail.counterpart.name}</span>
-            <span className="mt-0.5 block truncate text-xs text-[var(--chat-muted)]">
+            <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
               {counterpartTyping
                 ? 'Typing...'
                 : offline
@@ -808,7 +808,7 @@ export function ConversationPanel({
       )}
       <div
         ref={scroll}
-        className="conversation-messages min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
         onScroll={() => {
           const node = scroll.current
           if (node) {
@@ -837,7 +837,7 @@ export function ConversationPanel({
             return (
               <Fragment key={message.id}>
                 {(index === 0 || visible[index - 1]?.createdAt.toDateString() !== date) && (
-                  <div className="chat-date-divider my-3 self-center rounded-full px-3 py-1.5 text-[11px]">
+                  <div className="my-3 self-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] text-slate-500 dark:bg-slate-900/80 dark:text-slate-400">
                     {date === new Date().toDateString()
                       ? 'Today'
                       : message.createdAt.toLocaleDateString(undefined, {
@@ -1059,7 +1059,7 @@ export function ConversationPanel({
                       ))}
                     </div>
                   ) : null}
-                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--chat-muted)]">
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500 dark:text-slate-400">
                     {starred[message.id] && (
                       <Star
                         className="mr-auto size-3 fill-amber-400 text-amber-500"
@@ -1242,7 +1242,7 @@ export function ConversationPanel({
           </div>
         </footer>
       ) : detail.conversation.status === 'accepted' ? (
-        <footer className="conversation-composer-footer px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 sm:pb-3">
+        <footer className="px-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2 sm:px-3 sm:pb-3">
           <div className="mx-auto max-w-3xl">
             {replyTo && (
               <div className="mb-2 flex items-start gap-3 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/90">

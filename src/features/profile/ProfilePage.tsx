@@ -1,8 +1,8 @@
 import { Button } from '@shared/components/Button'
 import { Dialog } from '@shared/components/Dialog'
 import { Input, Switch, Textarea } from '@shared/components/FormControls'
-import { ThemeToggle } from '@shared/components/ThemeToggle'
 import { SearchField } from '@shared/components/SearchField'
+import { ThemeToggle } from '@shared/components/ThemeToggle'
 import { useToast } from '@shared/components/toastContext'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
 import {
@@ -28,8 +28,8 @@ import { authRoutes } from '@/features/authentication/authRoutes'
 import { useAuthSession } from '@/features/authentication/authSession'
 import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
 import { offlineStore } from '@/features/chats/offlineStore'
-import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { inviteApi } from '@/features/invites/inviteApi'
+import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { haptic } from '@/shared/motion/haptics'
 
 const settingsCategories = [
@@ -66,7 +66,19 @@ const settingsCategories = [
   { id: 'account', title: 'Account', description: 'NexusOS ID and sign-in session', icon: KeyRound }
 ] as const
 
-type SettingsSection = (typeof settingsCategories)[number]['id']
+const defaultProfileSettings: Profile['settings'] = {
+  userId: '',
+  bio: '',
+  language: 'en',
+  showLastSeen: true,
+  allowReadReceipts: true,
+  allowBroadcasts: true,
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
+  timeZone: 'UTC',
+  updatedAt: new Date(0)
+}
 
 export default function ProfilePage() {
   const { session, signOut, serverConfirmed } = useAuthSession()
@@ -125,7 +137,11 @@ export default function ProfilePage() {
     return offlineStore
       .read<Profile>(session!.data.id, 'profile')
       .then((cached) => {
-        if (cached) setProfile(cached)
+        if (cached)
+          setProfile({
+            ...cached,
+            settings: { ...defaultProfileSettings, ...cached.settings }
+          })
         if (!navigator.onLine || !serverConfirmed) return cached
         return profileApi.get(token).then((next) => {
           setProfile(next)
@@ -178,7 +194,11 @@ export default function ProfilePage() {
         language: profile.settings.language,
         show_last_seen: profile.settings.showLastSeen,
         allow_read_receipts: profile.settings.allowReadReceipts,
-        allow_broadcasts: profile.settings.allowBroadcasts
+        allow_broadcasts: profile.settings.allowBroadcasts,
+        quiet_hours_enabled: profile.settings.quietHoursEnabled,
+        quiet_hours_start: profile.settings.quietHoursStart,
+        quiet_hours_end: profile.settings.quietHoursEnd,
+        time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || profile.settings.timeZone
       }
       await offlineStore.save(session!.data.id, 'profile', profile)
       if (!navigator.onLine || !serverConfirmed) {
@@ -205,8 +225,7 @@ export default function ProfilePage() {
     setProfile({ ...profile, settings: { ...profile.settings, [key]: value } })
   const businessRequest = profile.business_request
   const pendingBusinessRequest = businessRequest?.status === 'pending'
-  const section = settingsCategories.find((item) => item.id === sectionParam)?.id as
-    SettingsSection | undefined
+  const section = settingsCategories.find((item) => item.id === sectionParam)?.id
   const sectionTitle =
     section === 'business' && profile.account_kind === 'customer'
       ? 'Business account'
@@ -435,7 +454,10 @@ export default function ProfilePage() {
             ) : null}
 
             {section === 'notifications' ? (
-              <section className="app-panel grid gap-4 p-4 sm:p-6">
+              <form
+                onSubmit={(event) => void save(event)}
+                className="app-panel grid gap-4 p-4 sm:p-6"
+              >
                 <div>
                   <h2 className="text-sm font-medium">Browser notifications</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -464,10 +486,52 @@ export default function ProfilePage() {
                     {notifications.enabled ? 'Notifications enabled' : 'Retry notifications'}
                   </Button>
                 </div>
+                <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <h2 className="text-sm font-medium">Quiet hours</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Message alerts are paused during these hours. Message delivery is unchanged.
+                  </p>
+                  <Switch
+                    className="mt-3"
+                    label="Pause notifications during quiet hours"
+                    checked={profile.settings.quietHoursEnabled}
+                    onChange={(event) => setting('quietHoursEnabled', event.target.checked)}
+                  />
+                  {profile.settings.quietHoursEnabled ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <Input
+                        label="Start"
+                        type="time"
+                        value={profile.settings.quietHoursStart}
+                        onChange={(event) => setting('quietHoursStart', event.target.value)}
+                      />
+                      <Input
+                        label="End"
+                        type="time"
+                        value={profile.settings.quietHoursEnd}
+                        onChange={(event) => setting('quietHoursEnd', event.target.value)}
+                      />
+                      <p className="text-xs text-slate-500 sm:col-span-2">
+                        Times use this device's timezone:{' '}
+                        {Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                {notice ? (
+                  <p role="status" className="text-sm text-slate-500">
+                    {notice}
+                  </p>
+                ) : null}
+                <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <Button type="submit" loading={saving}>
+                    Save notification settings
+                  </Button>
+                </div>
                 {notifications.error ? (
                   <p className="text-sm font-medium text-rose-600">{notifications.error}</p>
                 ) : null}
-              </section>
+              </form>
             ) : null}
 
             {section === 'business' ? (

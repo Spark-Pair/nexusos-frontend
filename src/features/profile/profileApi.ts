@@ -7,6 +7,10 @@ const settingsSchema = z.object({
   showLastSeen: z.boolean(),
   allowReadReceipts: z.boolean(),
   allowBroadcasts: z.boolean(),
+  quietHoursEnabled: z.boolean(),
+  quietHoursStart: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u),
+  quietHoursEnd: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u),
+  timeZone: z.string(),
   updatedAt: z.coerce.date()
 })
 const businessRequestSchema = z.object({
@@ -67,6 +71,10 @@ export const profileApi = {
       show_last_seen: boolean
       allow_read_receipts: boolean
       allow_broadcasts: boolean
+      quiet_hours_enabled: boolean
+      quiet_hours_start: string
+      quiet_hours_end: string
+      time_zone: string
     }
   ) => call(token, { method: 'PATCH', body: JSON.stringify(value) }),
   requestBusiness: async (

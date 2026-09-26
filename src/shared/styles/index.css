@@ -374,10 +374,6 @@
     background-color: color-mix(in srgb, var(--color-brand-500) 11%, transparent);
   }
 
-  .chat-list-item-selected {
-    box-shadow: inset 2px 0 0 var(--color-brand-500);
-  }
-
   .message-bubble {
     @apply max-w-[min(84%,38rem)] break-words border px-3.5 py-2.5 text-[0.9375rem] leading-6;
     border-radius: 1rem;

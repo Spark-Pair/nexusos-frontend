@@ -11,6 +11,7 @@ import { ScreenTransition } from '@/shared/components/ScreenTransition'
 
 const ChatsPage = lazy(() => import('@/features/chats/ChatsPage'))
 const DesignSystemPage = lazy(() => import('@/features/design-system/DesignSystemPage'))
+const ThemePreviewPage = lazy(() => import('@/features/design-system/ThemePreviewPage'))
 const SignInPage = lazy(() => import('@/features/authentication/SignInPage'))
 const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage'))
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'))
@@ -58,6 +59,7 @@ export function App() {
             <Route path="/admin/moderation" element={<AdminReportsPage />} />
           </Route>
           <Route path="/design-system" element={<DesignSystemPage />} />
+          <Route path="/theme-preview" element={<ThemePreviewPage />} />
           <Route path="/create-account" element={<Navigate to="/sign-in" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -90,9 +90,9 @@ const customerRows: CustomerRow[] = [
 ]
 
 const colors = [
-  ['Brand', '#287663', 'bg-[var(--color-brand-500)]'],
-  ['Ink', '#1C2420', 'bg-slate-900'],
-  ['Canvas', '#F8F9F8', 'bg-[var(--color-canvas)]'],
+  ['Brand', '#2F81F7', 'bg-[var(--color-brand-500)]'],
+  ['Ink', '#18181B', 'bg-slate-900'],
+  ['Canvas', '#F5F5F5', 'bg-[var(--color-canvas)]'],
   ['Success', '#047857', 'bg-emerald-700'],
   ['Warning', '#B45309', 'bg-amber-700'],
   ['Danger', '#BE123C', 'bg-rose-700']

@@ -1,5 +1,4 @@
 import { ActionMenu } from '@shared/components/ActionMenu'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Button } from '@shared/components/Button'
 import {
   ChatListScreen,
@@ -10,20 +9,23 @@ import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { History, ListChecks, Megaphone, MessageCircle, RefreshCw, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
+import { messagingApi } from './messagingApi'
+import { setUnreadCount, useUnreadCount } from './unreadCount'
 import { useMessaging } from './useMessaging'
 import { useAuthSession } from '@/features/authentication/authSession'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { haptic } from '@/shared/motion/haptics'
-import { setUnreadCount, useUnreadCount } from './unreadCount'
 
 export default function ChatsPage() {
   const navigate = useNavigate()
   const { conversationId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { session, serverConfirmed } = useAuthSession()
   usePushNotifications(session!.token)
   const messaging = useMessaging(session!.token, session!.data.id, serverConfirmed)
@@ -31,7 +33,12 @@ export default function ChatsPage() {
   const { open, setSelected } = messaging
   const toast = useToast()
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<ChatFilter>('all')
+  const [filter, setFilter] = useState<ChatFilter>(() =>
+    searchParams.get('filter') === 'unread' ? 'unread' : 'all'
+  )
+  const [messageMatches, setMessageMatches] = useState<Record<string, string>>({})
+  const [messageSearchStatus, setMessageSearchStatus] = useState('')
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
   const [discovering, setDiscovering] = useState(false)
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 1023px)').matches : false
@@ -40,11 +47,23 @@ export default function ChatsPage() {
   const conversationSwipe = useRef<{ x: number; y: number } | undefined>(undefined)
   const closeDiscover = useCallback(() => setDiscovering(false), [])
   useEffect(() => {
+    setFilter(searchParams.get('filter') === 'unread' ? 'unread' : 'all')
+  }, [searchParams])
+  useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)')
     const update = () => setIsMobile(media.matches)
     update()
     media.addEventListener('change', update)
     return () => media.removeEventListener('change', update)
+  }, [])
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
   }, [])
   useEffect(() => {
     if (conversationId) void open(conversationId).catch(() => undefined)
@@ -78,6 +97,46 @@ export default function ChatsPage() {
       messaging.conversations.reduce((total, conversation) => total + conversation.unreadCount, 0)
     )
   }, [messaging.conversations, messaging.loading, session])
+  useEffect(() => {
+    const term = query.trim()
+    if (term.length < 2) {
+      setMessageMatches({})
+      setMessageSearchStatus('')
+      return
+    }
+    if (!isOnline || !serverConfirmed) {
+      setMessageMatches({})
+      setMessageSearchStatus('Offline: searching chat names and saved previews only.')
+      return
+    }
+    let current = true
+    setMessageSearchStatus('Searching message history...')
+    const timer = window.setTimeout(() => {
+      void messagingApi
+        .searchMessages(session!.token, term)
+        .then((results) => {
+          if (!current) return
+          const matches: Record<string, string> = {}
+          for (const result of results) {
+            if (matches[result.conversationId]) continue
+            matches[result.conversationId] = [result.title, result.body].filter(Boolean).join(': ')
+          }
+          setMessageMatches(matches)
+          setMessageSearchStatus('')
+        })
+        .catch(() => {
+          if (!current) return
+          setMessageMatches({})
+          setMessageSearchStatus(
+            'Message history search is unavailable. Showing chat names and previews.'
+          )
+        })
+    }, 250)
+    return () => {
+      current = false
+      window.clearTimeout(timer)
+    }
+  }, [isOnline, query, serverConfirmed, session])
   const business = session!.data.account_kind === 'business'
   const current = messaging.conversations.find((item) => item.id === conversationId)
   const onConversationPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -101,18 +160,22 @@ export default function ChatsPage() {
     haptic('selection')
     void navigate('/app/chats')
   }
-  useEffect(() => {
-    if (conversationId) return
-    const unreadConversation = messaging.conversations.find((item) => item.unreadCount > 0)
-    if (unreadConversation) navigate(`/app/chats/${unreadConversation.id}`, { replace: true })
-  }, [conversationId, messaging.conversations, navigate])
   const mobileItems: MobileTabItem[] = business
     ? [
         {
           id: 'chats',
           label: 'Chats',
           icon: 'chats',
-          ...(unreadCount ? { badge: unreadCount } : {})
+          ...(unreadCount
+            ? {
+                badge: unreadCount,
+                onBadgeClick: () => {
+                  setFilter('unread')
+                  setQuery('')
+                  setSearchParams({ filter: 'unread' })
+                }
+              }
+            : {})
         },
         { id: 'broadcasts', label: 'Lists', icon: 'broadcasts' },
         { id: 'compose', label: 'Send', icon: 'send' },
@@ -124,10 +187,34 @@ export default function ChatsPage() {
           id: 'chats',
           label: 'Chats',
           icon: 'chats',
-          ...(unreadCount ? { badge: unreadCount } : {})
+          ...(unreadCount
+            ? {
+                badge: unreadCount,
+                onBadgeClick: () => {
+                  setFilter('unread')
+                  setQuery('')
+                  setSearchParams({ filter: 'unread' })
+                }
+              }
+            : {})
         },
         { id: 'profile', label: 'Profile', icon: 'profile' }
       ]
+  const failedChanges =
+    messaging.queued.filter((item) => item.status === 'failed').length +
+    messaging.queuedActions.filter((item) => item.status === 'failed').length
+  const pendingChanges =
+    messaging.queued.filter((item) => item.status !== 'failed').length +
+    messaging.queuedActions.filter((item) => item.status !== 'failed').length
+  const syncStatus = !isOnline
+    ? `Offline${pendingChanges ? ` - ${pendingChanges} changes waiting to sync` : ''}`
+    : failedChanges
+      ? `${failedChanges} change${failedChanges === 1 ? '' : 's'} need attention`
+      : pendingChanges
+        ? `Syncing ${pendingChanges} change${pendingChanges === 1 ? '' : 's'}...`
+        : !serverConfirmed
+          ? 'Using saved data. Changes will sync when connected.'
+          : 'All changes synced'
   return (
     <main
       data-mobile-swipe
@@ -202,6 +289,7 @@ export default function ChatsPage() {
           conversations={previews}
           filter={filter}
           query={query}
+          messageMatches={messageMatches}
           selectedId={conversationId ?? null}
           headerActions={
             <ActionMenu
@@ -229,7 +317,11 @@ export default function ChatsPage() {
           onFilterChange={setFilter}
           onOpenConversation={(chat) => {
             haptic('light')
-            void navigate('/app/chats/' + chat.id)
+            const search =
+              messageMatches[chat.id] && query.trim()
+                ? `?search=${encodeURIComponent(query.trim())}`
+                : ''
+            void navigate('/app/chats/' + chat.id + search)
           }}
           onQuickAction={(chat, action) => {
             const conversation = messaging.conversations.find((item) => item.id === chat.id)
@@ -244,20 +336,32 @@ export default function ChatsPage() {
           }}
           onQueryChange={setQuery}
           status={
-            messaging.loading ? (
-              <p role="status">Loading chats...</p>
-            ) : messaging.error ? (
+            <div className="grid gap-2">
+              {messageSearchStatus ? <p role="status">{messageSearchStatus}</p> : null}
+              {messaging.loading ? <p role="status">Loading chats...</p> : null}
+              {messaging.error ? (
+                <div className="flex items-center justify-between gap-2">
+                  <p role="status">{messaging.error}</p>
+                  <IconButton
+                    label="Retry loading chats"
+                    size="sm"
+                    variant="quiet"
+                    icon={<RefreshCw className="size-4" />}
+                    onClick={() => void messaging.refresh()}
+                  />
+                </div>
+              ) : null}
               <div className="flex items-center justify-between gap-2">
-                <p role="status">{messaging.error}</p>
-                <IconButton
-                  label="Retry loading chats"
-                  size="sm"
-                  variant="quiet"
-                  icon={<RefreshCw className="size-4" />}
-                  onClick={() => void messaging.refresh()}
-                />
+                <p role="status" aria-live="polite">
+                  {syncStatus}
+                </p>
+                {failedChanges ? (
+                  <Button size="sm" variant="quiet" onClick={() => void messaging.retryFailed()}>
+                    <RefreshCw className="size-3.5" /> Retry failed
+                  </Button>
+                ) : null}
               </div>
-            ) : undefined
+            </div>
           }
         />
       </aside>
@@ -287,6 +391,7 @@ export default function ChatsPage() {
               key={conversationId}
               detail={messaging.selected}
               currentUserId={session!.data.id}
+              initialSearch={searchParams.get('search') ?? ''}
               onBack={() => {
                 haptic('light')
                 void navigate('/app/chats')

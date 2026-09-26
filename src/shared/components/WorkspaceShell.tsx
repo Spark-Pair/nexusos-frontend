@@ -1,10 +1,10 @@
-import { MessageCircle, UserRound } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { MessageCircle, UserRound } from 'lucide-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MobileTabBar } from './MobileTabBar'
-import { haptic } from '@/shared/motion/haptics'
 import { useUnreadCount } from '@/features/chats/unreadCount'
+import { haptic } from '@/shared/motion/haptics'
 
 export function WorkspaceShell({
   children,
@@ -121,7 +121,12 @@ export function WorkspaceShell({
               id: 'chats',
               label: 'Chats',
               icon: 'chats',
-              ...(unreadCount ? { badge: unreadCount } : {})
+              ...(unreadCount
+                ? {
+                    badge: unreadCount,
+                    onBadgeClick: () => void navigate('/app/chats?filter=unread')
+                  }
+                : {})
             },
             ...(accountKind === 'business'
               ? [

@@ -46,8 +46,16 @@ const summarySchema = conversationSchema.extend({
   muted: z.boolean(),
   pinned: z.boolean().default(false)
 })
+const messageSearchResultSchema = z.object({
+  conversationId: z.string().uuid(),
+  messageId: z.string().uuid(),
+  body: z.string(),
+  title: z.string(),
+  createdAt: z.coerce.date()
+})
 export type DirectoryProfile = z.infer<typeof profileSchema>
 export type ConversationSummary = z.infer<typeof summarySchema>
+export type MessageSearchResult = z.infer<typeof messageSearchResultSchema>
 export type Message = z.infer<typeof messageSchema>
 export interface ConversationDetail {
   conversation: z.infer<typeof conversationSchema>
@@ -93,6 +101,10 @@ export const messagingApi = {
     }),
   list: async (token: string) =>
     z.object({ data: z.array(summarySchema) }).parse(await call('/conversations', token)).data,
+  searchMessages: async (token: string, query: string) =>
+    z
+      .object({ data: z.array(messageSearchResultSchema) })
+      .parse(await call(`/conversations/search?q=${encodeURIComponent(query)}`, token)).data,
   detail: async (token: string, id: string): Promise<ConversationDetail> =>
     z
       .object({

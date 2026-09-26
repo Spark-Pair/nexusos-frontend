@@ -69,4 +69,27 @@ describe('ChatListScreen', () => {
     expect(onQuickAction).toHaveBeenCalledWith(conversations[0], 'pin')
     expect(props.onOpenConversation).not.toHaveBeenCalled()
   })
+
+  it('searches message snippets and supports desktop chat-list keyboard navigation', () => {
+    const props = renderScreen({
+      mode: 'app',
+      messageMatches: { one: 'An older invoice is ready' }
+    })
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search chats' }), {
+      target: { value: 'older invoice' }
+    })
+    expect(screen.getByText('Studio One')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search chats' }), {
+      target: { value: '' }
+    })
+    fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Search chats' }), {
+      key: 'ArrowDown'
+    })
+    const row = screen.getByLabelText('Conversation with Studio One')
+    expect(row).toHaveFocus()
+    fireEvent.keyDown(row, { key: 'Enter' })
+    expect(props.onOpenConversation).toHaveBeenCalledWith(conversations[0])
+  })
 })

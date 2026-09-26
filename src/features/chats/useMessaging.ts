@@ -17,7 +17,7 @@ import {
   type Message
 } from './messagingApi'
 import { queueOfflineAction, syncOfflineActions } from './offlineActions'
-import { offlineStore, type QueuedMessage } from './offlineStore'
+import { offlineStore, type QueuedAction, type QueuedMessage } from './offlineStore'
 import { syncOutbox } from './outbox'
 import { broadcastApi } from '@/features/broadcasts/broadcastApi'
 
@@ -143,6 +143,7 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState<string>()
   const [queued, setQueued] = useState<QueuedMessage[]>([])
+  const [queuedActions, setQueuedActions] = useState<QueuedAction[]>([])
   const [starred, setStarred] = useState<Record<string, true>>({})
   const [counterpartTyping, setCounterpartTyping] = useState(false)
   const socketRef = useRef<Socket | undefined>(undefined)
@@ -157,6 +158,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
   const loadQueue = useCallback(async () => {
     const items = await offlineStore.queued(actorId).catch(() => [])
     if (alive.current) setQueued(items)
+  }, [actorId])
+  const loadQueuedActions = useCallback(async () => {
+    const items = await offlineStore.queuedActions(actorId).catch(() => [])
+    if (alive.current) setQueuedActions(items)
   }, [actorId])
   const refresh = useCallback(async () => {
     const cached = await offlineStore
@@ -253,9 +258,10 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       await syncOfflineActions(actorId, token).catch(() => undefined)
     }
     await loadQueue()
+    await loadQueuedActions()
     await refresh()
     if (selectedId.current) await open(selectedId.current).catch(() => undefined)
-  }, [actorId, token, serverConfirmed, loadQueue, refresh, open])
+  }, [actorId, token, serverConfirmed, loadQueue, loadQueuedActions, refresh, open])
   useEffect(() => {
     alive.current = true
     void synchronize()
@@ -371,9 +377,11 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
         })
         .catch(() => undefined)
     }
+    const updateActions = () => void loadQueuedActions()
     window.addEventListener('online', update)
     window.addEventListener('offline', update)
     window.addEventListener('nexusos-outbox-updated', updateOutbox)
+    window.addEventListener('nexusos-actions-updated', updateActions)
     const reconciliationTimer = window.setInterval(() => {
       if (navigator.onLine && serverConfirmed) void refresh()
     }, 5000)
@@ -384,8 +392,9 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
       window.removeEventListener('online', update)
       window.removeEventListener('offline', update)
       window.removeEventListener('nexusos-outbox-updated', updateOutbox)
+      window.removeEventListener('nexusos-actions-updated', updateActions)
     }
-  }, [actorId, loadQueue, open, refresh, serverConfirmed, synchronize, token])
+  }, [actorId, loadQueue, loadQueuedActions, open, refresh, serverConfirmed, synchronize, token])
   const search = async (query: string) => {
     const version = ++searchId.current
     const result = await messagingApi.search(token, query)
@@ -478,6 +487,23 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
   }
   const retry = async (item: QueuedMessage) => {
     await offlineStore.enqueue({ ...item, status: 'queued', error: '' })
+    await synchronize()
+  }
+  const retryFailed = async () => {
+    const [messages, actions] = await Promise.all([
+      offlineStore.queued(actorId),
+      offlineStore.queuedActions(actorId)
+    ])
+    await Promise.all([
+      ...messages
+        .filter((item) => item.status === 'failed')
+        .map((item) => offlineStore.enqueue({ ...item, status: 'queued', error: '' })),
+      ...actions
+        .filter((item) => item.status === 'failed')
+        .map((item) => offlineStore.updateAction(item.id, { status: 'queued', error: '' }))
+    ])
+    window.dispatchEvent(new Event('nexusos-outbox-updated'))
+    window.dispatchEvent(new Event('nexusos-actions-updated'))
     await synchronize()
   }
   const discard = async (id: string) => {
@@ -618,6 +644,8 @@ export function useMessaging(token: string, actorId: string, serverConfirmed: bo
     respond,
     send,
     queued,
+    queuedActions,
+    retryFailed,
     starred,
     toggleStar,
     retry,

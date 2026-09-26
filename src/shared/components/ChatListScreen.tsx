@@ -1,6 +1,7 @@
-import { ActionMenu } from './ActionMenu'
 import { Archive, ArchiveRestore, BadgeCheck, Bell, BellOff, Pin, PinOff } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
+import { ActionMenu } from './ActionMenu'
 import { AppIcon } from './AppIcon'
 import { IconButton } from './IconButton'
 import { MobileTabBar, type MobileTabItem } from './MobileTabBar'
@@ -33,6 +34,7 @@ export function ChatListScreen({
   query,
   headerActions,
   status,
+  messageMatches,
   mode = 'preview',
   selectedId,
   tabs = [
@@ -52,18 +54,85 @@ export function ChatListScreen({
   onQueryChange: (query: string) => void
   headerActions?: ReactNode
   status?: ReactNode
+  messageMatches?: Readonly<Record<string, string>>
   mode?: 'preview' | 'app'
   selectedId?: string | null
   tabs?: MobileTabItem[]
 }) {
   const visible = conversations.filter((chat) => {
     const matchesFilter = filter === 'all' ? chat.category !== 'archived' : chat.category === filter
+    const messageMatch = messageMatches?.[chat.id] ?? ''
     return (
-      matchesFilter && `${chat.name} ${chat.message}`.toLowerCase().includes(query.toLowerCase())
+      matchesFilter &&
+      `${chat.name} ${chat.message} ${messageMatch}`.toLowerCase().includes(query.toLowerCase())
     )
   })
+  const rootRef = useRef<HTMLDivElement>(null)
+  const visibleRef = useRef(visible)
+  const queryRef = useRef(query)
+  const onOpenRef = useRef(onOpenConversation)
+  const onQueryChangeRef = useRef(onQueryChange)
+  visibleRef.current = visible
+  queryRef.current = query
+  onOpenRef.current = onOpenConversation
+  onQueryChangeRef.current = onQueryChange
+  useEffect(() => {
+    if (mode !== 'app') return
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target
+      const element = target instanceof HTMLElement ? target : undefined
+      const editing = Boolean(
+        element?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')
+      )
+      const searchInput = element?.matches('input[type="search"]') ?? false
+      const control = Boolean(
+        element?.closest('button, a, [role="menuitem"], [data-chat-actions-menu]')
+      )
+      if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !editing) {
+        event.preventDefault()
+        rootRef.current?.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
+        return
+      }
+      if (event.key === 'Escape' && queryRef.current && !control) {
+        onQueryChangeRef.current('')
+        return
+      }
+      if (
+        (event.key === 'ArrowDown' || event.key === 'ArrowUp') &&
+        (!editing || searchInput) &&
+        !control
+      ) {
+        const rows = [...(rootRef.current?.querySelectorAll<HTMLElement>('[data-chat-row]') ?? [])]
+        if (!rows.length) return
+        const currentIndex = rows.indexOf(document.activeElement as HTMLElement)
+        const nextIndex =
+          currentIndex < 0
+            ? event.key === 'ArrowDown'
+              ? 0
+              : rows.length - 1
+            : Math.max(
+                0,
+                Math.min(rows.length - 1, currentIndex + (event.key === 'ArrowDown' ? 1 : -1))
+              )
+        event.preventDefault()
+        rows[nextIndex]?.focus()
+        return
+      }
+      if ((event.key === 'Enter' || event.key === ' ') && !editing && !control) {
+        const row = element?.closest<HTMLElement>('[data-chat-row]')
+        const chat = visibleRef.current.find((item) => item.id === row?.dataset.chatRow)
+        if (chat) {
+          event.preventDefault()
+          onOpenRef.current(chat)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode])
   return (
     <div
+      ref={rootRef}
       className={`flex w-full flex-col overflow-hidden border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)]' : 'h-full min-h-0 rounded-[var(--radius-surface)]'}`}
     >
       <header className="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4 dark:border-slate-800 sm:px-5 sm:pt-5">
@@ -134,6 +203,9 @@ export function ChatListScreen({
             return (
               <div
                 key={chat.id}
+                data-chat-row={chat.id}
+                tabIndex={0}
+                aria-label={`Conversation with ${chat.name}`}
                 aria-current={selectedId === chat.id ? 'true' : undefined}
                 className={`chat-list-item group relative ${selectedId === chat.id ? 'chat-list-item-selected' : ''}`}
                 onClick={() => onOpenConversation(chat)}
@@ -155,7 +227,7 @@ export function ChatListScreen({
                   <span
                     className={`mt-1 block truncate text-xs ${chat.unreadCount ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}
                   >
-                    {chat.message}
+                    {messageMatches?.[chat.id] ?? chat.message}
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1">

@@ -172,6 +172,7 @@ function QueuedAudioPreview({ audio }: { audio: { blob: Blob; name: string } }) 
 export function ConversationPanel({
   detail,
   currentUserId,
+  initialSearch = '',
   onBack,
   onRespond,
   onSend,
@@ -196,6 +197,7 @@ export function ConversationPanel({
 }: {
   detail: ConversationDetail
   currentUserId: string
+  initialSearch?: string
   onBack: () => void
   onRespond: (decision: 'accepted' | 'rejected') => Promise<void>
   onSend: (
@@ -228,7 +230,7 @@ export function ConversationPanel({
 }) {
   const toast = useToast()
   const [searching, setSearching] = useState(false)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialSearch)
   const [starredOnly, setStarredOnly] = useState(false)
   const [activeSearchIndex, setActiveSearchIndex] = useState(0)
   const [info, setInfo] = useState(false)
@@ -240,6 +242,11 @@ export function ConversationPanel({
   const [editBody, setEditBody] = useState('')
   const [reported, setReported] = useState<string[]>([])
   const [busy, setBusy] = useState('')
+  useEffect(() => {
+    if (!initialSearch) return
+    setQuery(initialSearch)
+    setSearching(true)
+  }, [initialSearch])
   const [scrolledUp, setScrolledUp] = useState(false)
   const [newMessages, setNewMessages] = useState(0)
   const [newMessageStartId, setNewMessageStartId] = useState<string>()

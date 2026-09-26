@@ -1,13 +1,14 @@
-import { AppIcon, type AppIconName } from './AppIcon'
-import { haptic } from '@/shared/motion/haptics'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { AppIcon, type AppIconName } from './AppIcon'
+import { haptic } from '@/shared/motion/haptics'
 
 export interface MobileTabItem {
   id: string
   label: string
   icon: AppIconName
   badge?: number
+  onBadgeClick?: () => void
 }
 
 export function MobileTabBar({
@@ -26,11 +27,6 @@ export function MobileTabBar({
   onChangeRef.current = onChange
   itemsRef.current = items
   activeIdRef.current = activeId
-  const activeIndex = Math.max(
-    0,
-    items.findIndex((item) => item.id === activeId)
-  )
-
   useEffect(() => {
     let start: { x: number; y: number; at: number } | undefined
     const down = (event: PointerEvent) => {
@@ -86,45 +82,57 @@ export function MobileTabBar({
         {items.map((item) => {
           const active = item.id === activeId
           return (
-            <button
-              key={item.id}
-              type="button"
-              aria-label={
-                item.badge
-                  ? `${item.label}, ${item.badge > 99 ? '99+' : item.badge} unread`
-                  : item.label
-              }
-              aria-current={active ? 'page' : undefined}
-              onClick={() => {
-                if (!active) haptic('light')
-                onChange(item.id)
-              }}
-              className={`mobile-app-tab spring-interaction relative flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${active ? 'mobile-app-tab-active' : ''}`}
-            >
-              <span className="relative grid size-8 place-items-center">
-                {active ? (
-                  <motion.span
-                    layoutId="mobile-active-tab-indicator"
-                    className="mobile-app-tab-indicator absolute inset-0 rounded-[var(--radius-control)]"
-                    transition={
-                      reducedMotion
-                        ? { duration: 0 }
-                        : { type: 'spring', stiffness: 420, damping: 32, mass: 0.72 }
-                    }
-                  />
-                ) : null}
-                <AppIcon name={item.icon} className="relative z-10 size-5" />
-                {item.badge ? (
+            <span key={item.id} className="relative flex min-w-0 justify-center">
+              <button
+                type="button"
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => {
+                  if (!active) haptic('light')
+                  onChange(item.id)
+                }}
+                className={`mobile-app-tab spring-interaction relative flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${active ? 'mobile-app-tab-active' : ''}`}
+              >
+                <span className="relative grid size-8 place-items-center">
+                  {active ? (
+                    <motion.span
+                      layoutId="mobile-active-tab-indicator"
+                      className="mobile-app-tab-indicator absolute inset-0 rounded-[var(--radius-control)]"
+                      transition={
+                        reducedMotion
+                          ? { duration: 0 }
+                          : { type: 'spring', stiffness: 420, damping: 32, mass: 0.72 }
+                      }
+                    />
+                  ) : null}
+                  <AppIcon name={item.icon} className="relative z-10 size-5" />
+                </span>
+                {item.label}
+              </button>
+              {item.badge ? (
+                item.onBadgeClick ? (
+                  <button
+                    type="button"
+                    data-no-page-swipe
+                    aria-label={`Show ${item.badge} unread chats`}
+                    onClick={() => {
+                      haptic('light')
+                      item.onBadgeClick?.()
+                    }}
+                    className="absolute left-[calc(50%+0.55rem)] top-0.5 z-30 grid min-h-5 min-w-5 place-items-center rounded-full border border-white bg-blue-600 px-1 text-[9px] font-semibold text-white shadow-sm dark:border-slate-950"
+                  >
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </button>
+                ) : (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-1 -top-0.5 z-20 grid min-w-4 place-items-center rounded-full border border-white bg-blue-600 px-1 text-[9px] text-white dark:border-slate-950"
+                    className="pointer-events-none absolute left-[calc(50%+0.55rem)] top-0.5 z-20 grid min-h-5 min-w-5 place-items-center rounded-full border border-white bg-blue-600 px-1 text-[9px] font-semibold text-white dark:border-slate-950"
                   >
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
-                ) : null}
-              </span>
-              {item.label}
-            </button>
+                )
+              ) : null}
+            </span>
           )
         })}
       </div>

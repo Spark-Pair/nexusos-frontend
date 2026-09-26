@@ -2,6 +2,7 @@ import { AdminShell } from '@shared/components/AdminShell'
 import { Button } from '@shared/components/Button'
 import { DataTable, type DataColumn } from '@shared/components/DataTable'
 import { Dialog } from '@shared/components/Dialog'
+import { PageHeader } from '@shared/components/PageHeader'
 import { SearchField } from '@shared/components/SearchField'
 import { useToast } from '@shared/components/toastContext'
 import {
@@ -171,18 +172,17 @@ export default function AdminUsersPage() {
   return (
     <AdminShell onSignOut={() => void signOut()}>
       <div className="grid gap-3">
-        <header className="app-panel flex flex-wrap items-center gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
-              NexusOS administration
-            </p>
-            <h1 className="text-2xl font-bold">Users & business requests</h1>
-          </div>
-          <Button variant="quiet" onClick={() => void navigate('/admin/moderation')}>
-            <Flag className="size-4" />
-            Reports
-          </Button>
-        </header>
+        <PageHeader
+          className="app-panel p-5"
+          eyebrow="NexusOS administration"
+          title="Users & business requests"
+          actions={
+            <Button variant="quiet" onClick={() => void navigate('/admin/moderation')}>
+              <Flag className="size-4" />
+              Reports
+            </Button>
+          }
+        />
         <section className="app-panel p-5">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>

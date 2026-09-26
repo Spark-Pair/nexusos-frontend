@@ -1,6 +1,9 @@
+import { BroadcastFeedCard } from '@shared/components/BroadcastFeedCard'
 import { Button } from '@shared/components/Button'
+import { PageHeader } from '@shared/components/PageHeader'
 import { EmptyState } from '@shared/components/states/EmptyState'
-import { ArrowLeft, Bookmark, Flag, Megaphone, VolumeX } from 'lucide-react'
+import { ErrorState } from '@shared/components/states/ErrorState'
+import { ArrowLeft, Bookmark, Flag, VolumeX } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { broadcastApi } from './broadcastApi'
@@ -49,21 +52,29 @@ export default function UpdatesPage() {
   return (
     <main className="app-canvas min-h-dvh p-3 sm:p-6">
       <div className="mx-auto max-w-3xl">
-        <header className="app-panel flex items-center gap-3 p-5">
-          <Button variant="quiet" onClick={() => void navigate('/app/chats')}>
-            <ArrowLeft className="size-4" />
-            Back
-          </Button>
-          <Megaphone />
-          <div>
-            <p className="text-xs font-bold uppercase text-blue-600">Customer inbox</p>
-            <h1 className="text-2xl font-bold">Updates</h1>
-          </div>
-        </header>
+        <PageHeader
+          className="app-panel p-5"
+          title="Updates"
+          eyebrow="Customer inbox"
+          actions={
+            <Button variant="quiet" onClick={() => void navigate('/app/chats')}>
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+          }
+        />
         {error ? (
-          <p role="alert" className="mt-3 rounded-2xl border border-red-300 p-4 text-red-700">
-            {error}
-          </p>
+          <ErrorState
+            compact
+            title="Updates could not load"
+            description={error}
+            actionLabel="Retry"
+            onAction={() =>
+              void reload().catch((cause: unknown) =>
+                setError(cause instanceof Error ? cause.message : 'Unable to load updates.')
+              )
+            }
+          />
         ) : null}
         <section className="mt-3 grid gap-3">
           <div className="flex gap-2">
@@ -92,76 +103,69 @@ export default function UpdatesPage() {
                   (filter === 'saved' && item.saved)
               )
               .map((item) => (
-                <article key={item.id} className="app-panel overflow-hidden p-5">
-                  <p className="text-xs font-bold uppercase text-blue-600">
-                    {item.businessName ?? 'Business update'}
-                  </p>
-                  <h2 className="mt-1 text-xl font-bold">{item.title}</h2>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    {item.body}
-                  </p>
-                  {item.imageUrls.length ? (
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      {item.imageUrls.map((url) => (
-                        <CachedBroadcastImage key={url} path={url} actorId={session!.data.id} />
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="quiet"
-                      onClick={() =>
-                        void broadcastApi
-                          .state(session!.token, item.id, { saved: !item.saved })
-                          .then(reload)
-                      }
-                    >
-                      <Bookmark className="size-4" />
-                      {item.saved ? 'Unsave' : 'Save'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="quiet"
-                      onClick={() =>
-                        void broadcastApi
-                          .mute(session!.token, item.businessId, !item.muted)
-                          .then(reload)
-                      }
-                    >
-                      <VolumeX className="size-4" />
-                      {item.muted ? 'Unmute' : 'Mute business'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={item.reported}
-                      onClick={() =>
-                        void broadcastApi
-                          .state(session!.token, item.id, { reported: true })
-                          .then(reload)
-                      }
-                    >
-                      <Flag className="size-4" />
-                      {item.reported ? 'Reported' : 'Report'}
-                    </Button>
-                    {!item.readAt ? (
+                <BroadcastFeedCard
+                  key={item.id}
+                  business={item.businessName ?? 'Business update'}
+                  title={item.title}
+                  body={item.body}
+                  publishedAt={item.publishedAt.toLocaleString()}
+                  media={item.imageUrls.map((url) => (
+                    <CachedBroadcastImage key={url} path={url} actorId={session!.data.id} />
+                  ))}
+                  actions={
+                    <>
                       <Button
                         size="sm"
+                        variant="quiet"
                         onClick={() =>
                           void broadcastApi
-                            .state(session!.token, item.id, { read: true })
+                            .state(session!.token, item.id, { saved: !item.saved })
                             .then(reload)
                         }
                       >
-                        Mark read
+                        <Bookmark className="size-4" />
+                        {item.saved ? 'Unsave' : 'Save'}
                       </Button>
-                    ) : null}
-                  </div>
-                  <time className="mt-4 block text-xs text-slate-500">
-                    {item.publishedAt.toLocaleString()}
-                  </time>
-                </article>
+                      <Button
+                        size="sm"
+                        variant="quiet"
+                        onClick={() =>
+                          void broadcastApi
+                            .mute(session!.token, item.businessId, !item.muted)
+                            .then(reload)
+                        }
+                      >
+                        <VolumeX className="size-4" />
+                        {item.muted ? 'Unmute' : 'Mute business'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={item.reported}
+                        onClick={() =>
+                          void broadcastApi
+                            .state(session!.token, item.id, { reported: true })
+                            .then(reload)
+                        }
+                      >
+                        <Flag className="size-4" />
+                        {item.reported ? 'Reported' : 'Report'}
+                      </Button>
+                      {!item.readAt ? (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            void broadcastApi
+                              .state(session!.token, item.id, { read: true })
+                              .then(reload)
+                          }
+                        >
+                          Mark read
+                        </Button>
+                      ) : null}
+                    </>
+                  }
+                />
               ))
           ) : (
             <EmptyState

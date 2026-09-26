@@ -1,8 +1,8 @@
 import { Button } from '@shared/components/Button'
+import { ContactRow } from '@shared/components/ContactRow'
 import { Dialog } from '@shared/components/Dialog'
 import { Input } from '@shared/components/FormControls'
 import { SearchField } from '@shared/components/SearchField'
-import { Avatar } from '@shared/components/Surface'
 import { useToast } from '@shared/components/toastContext'
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import type { BroadcastCustomer, BroadcastList } from './broadcastApi'
@@ -135,39 +135,27 @@ export function BroadcastListEditor({
                   aria-label="Available members"
                 >
                   {visible.map((customer) => (
-                    <label
+                    <ContactRow
                       key={customer.id}
-                      className="flex min-h-16 cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    >
-                      <input
-                        type="checkbox"
-                        className="size-4 shrink-0"
-                        aria-label={customer.name}
-                        checked={ids.includes(customer.id)}
-                        onChange={(event) =>
-                          setIds((current) =>
-                            event.target.checked
-                              ? [...current, customer.id]
-                              : current.filter((id) => id !== customer.id)
-                          )
-                        }
-                      />
-                      <Avatar label={customer.name} size="sm" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{customer.name}</span>
-                        <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                          @{customer.username}
-                        </span>
-                        {memberships(customer.id).length ? (
-                          <span className="mt-1 block truncate text-[11px] text-blue-600 dark:text-blue-300">
-                            Already in:{' '}
-                            {memberships(customer.id)
+                      name={customer.name}
+                      username={customer.username}
+                      selected={ids.includes(customer.id)}
+                      onSelectedChange={(checked) =>
+                        setIds((current) =>
+                          checked
+                            ? [...current, customer.id]
+                            : current.filter((id) => id !== customer.id)
+                        )
+                      }
+                      description={
+                        memberships(customer.id).length
+                          ? `Already in: ${memberships(customer.id)
                               .map((item) => item.name)
-                              .join(', ')}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
+                              .join(', ')}`
+                          : undefined
+                      }
+                      descriptionClassName="text-blue-600 dark:text-blue-300"
+                    />
                   ))}
                   {!visible.length && (
                     <p className="py-5 text-sm leading-6 text-slate-500 dark:text-slate-400">

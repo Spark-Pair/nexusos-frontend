@@ -13,8 +13,29 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Badge } from './Badge'
 import { Button } from './Button'
 import { IconButton } from './IconButton'
+import { VoiceNotePlayer } from './VoiceNotePlayer'
 
 export type AttachmentState = 'local' | 'pending' | 'acknowledged' | 'failed'
+
+function AudioFilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [src, setSrc] = useState('')
+  useEffect(() => {
+    const url = URL.createObjectURL(file)
+    setSrc(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-2 dark:border-slate-700 dark:bg-slate-900/90">
+      {src ? <VoiceNotePlayer src={src} className="min-w-0 flex-1" /> : null}
+      <IconButton
+        onClick={onRemove}
+        label="Remove voice message"
+        icon={<X className="size-3.5" />}
+        size="sm"
+      />
+    </div>
+  )
+}
 const attachmentLabels: Record<AttachmentState, string> = {
   local: 'Saved locally',
   pending: 'Pending upload',
@@ -225,17 +246,7 @@ export function MessageComposer({
           ))}
         </div>
       ) : null}
-      {audio ? (
-        <div className="mb-2 flex items-center gap-2 rounded-[var(--radius-surface)] border border-slate-300 bg-white/90 p-2 dark:border-slate-700 dark:bg-slate-900/90">
-          <audio controls src={URL.createObjectURL(audio)} className="h-9 flex-1" />
-          <IconButton
-            onClick={() => setAudio(null)}
-            label="Remove voice message"
-            icon={<X className="size-3.5" />}
-            size="sm"
-          />
-        </div>
-      ) : null}
+      {audio ? <AudioFilePreview file={audio} onRemove={() => setAudio(null)} /> : null}
       <form
         onSubmit={(event) => void submit(event)}
         className="composer-panel flex items-end gap-1.5 p-1.5 shadow-sm shadow-slate-950/5"

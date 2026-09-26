@@ -1,6 +1,6 @@
 ﻿import { Button } from '@shared/components/Button'
+import { ContactRow } from '@shared/components/ContactRow'
 import { SearchField } from '@shared/components/SearchField'
-import { Avatar } from '@shared/components/Surface'
 import { useToast } from '@shared/components/toastContext'
 import { useRef, useState } from 'react'
 import type { DirectoryProfile } from './messagingApi'
@@ -82,25 +82,23 @@ export function ConnectionsPanel({
         />
       </label>
       {profiles.map((profile) => (
-        <article
+        <ContactRow
           key={profile.id}
-          className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-900"
-        >
-          <Avatar label={profile.name} />
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold">{profile.name}</h3>
-            <p className="text-xs text-slate-500">@{profile.username}</p>
-          </div>
-          {actorKind === 'business' && (
-            <Button
-              loading={busy === profile.id}
-              disabled={!!busy || !message.trim()}
-              onClick={() => void run(profile.id, () => onInvite(profile.id, message.trim()))}
-            >
-              Invite
-            </Button>
-          )}
-        </article>
+          name={profile.name}
+          username={profile.username}
+          className="bg-slate-50 p-3 dark:bg-slate-900"
+          trailing={
+            actorKind === 'business' ? (
+              <Button
+                loading={busy === profile.id}
+                disabled={!!busy || !message.trim()}
+                onClick={() => void run(profile.id, () => onInvite(profile.id, message.trim()))}
+              >
+                Invite
+              </Button>
+            ) : null
+          }
+        />
       ))}
       {!profiles.length && (
         <p className="py-5 text-center text-sm text-slate-500">

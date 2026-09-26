@@ -1,7 +1,8 @@
 import { AdminShell } from '@shared/components/AdminShell'
 import { Button } from '@shared/components/Button'
+import { PageHeader } from '@shared/components/PageHeader'
 import { EmptyState } from '@shared/components/states/EmptyState'
-import { ArrowLeft, Flag } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminApi } from './adminApi'
@@ -34,14 +35,16 @@ export default function AdminReportsPage() {
   return (
     <AdminShell onSignOut={() => void signOut()}>
       <div className="mx-auto max-w-4xl">
-        <header className="app-panel flex items-center gap-3 p-5">
-          <Button variant="quiet" onClick={() => void nav('/admin/users')}>
-            <ArrowLeft className="size-4" />
-            Users
-          </Button>
-          <Flag />
-          <h1 className="text-2xl font-bold">Reported broadcasts</h1>
-        </header>
+        <PageHeader
+          className="app-panel p-5"
+          title="Reported broadcasts"
+          actions={
+            <Button variant="quiet" onClick={() => void nav('/admin/users')}>
+              <ArrowLeft className="size-4" />
+              Users
+            </Button>
+          }
+        />
         {error ? <p role="alert">{error}</p> : null}
         <section className="mt-3 grid gap-3">
           {reports.length ? (

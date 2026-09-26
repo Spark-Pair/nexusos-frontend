@@ -32,6 +32,7 @@
 }
 
 :root {
+  --workspace-sidebar-width: 216px;
   --color-brand-500: #187a63;
   --color-brand-600: #126b56;
   --color-brand-700: #105441;
@@ -129,6 +130,24 @@
 @layer components {
   .workspace-nav-link {
     @apply flex min-h-11 items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+  }
+  .application-frame {
+    @apply min-h-dvh pb-[var(--mobile-app-bar-height)] lg:grid lg:grid-cols-[var(--workspace-sidebar-width)_minmax(0,1fr)] lg:gap-3 lg:p-3 lg:pb-3;
+  }
+  .page-header {
+    @apply mb-6 flex flex-wrap items-center justify-between gap-4;
+  }
+  .page-header-eyebrow {
+    @apply text-xs font-bold uppercase text-blue-600 dark:text-blue-300;
+  }
+  .page-header-title {
+    @apply text-xl font-semibold;
+  }
+  .page-header-description {
+    @apply mt-1 text-sm text-slate-500 dark:text-slate-400;
+  }
+  .page-header-actions {
+    @apply flex shrink-0 flex-wrap items-center gap-2;
   }
 
   .workspace-nav-link-active {
@@ -699,7 +718,17 @@
     background-color: var(--color-canvas);
   }
   .inbox-shell-with-sidebar {
-    @apply lg:grid lg:grid-cols-[216px_360px_minmax(0,1fr)] xl:grid-cols-[224px_380px_minmax(0,1fr)];
+    grid-template-columns: var(--workspace-sidebar-width) 360px minmax(0, 1fr);
+  }
+  @media (min-width: 64rem) {
+    .inbox-shell-with-sidebar {
+      display: grid;
+    }
+  }
+  @media (min-width: 80rem) {
+    .inbox-shell-with-sidebar {
+      grid-template-columns: var(--workspace-sidebar-width) 380px minmax(0, 1fr);
+    }
   }
   .workspace-sidebar,
   .inbox-sidebar {

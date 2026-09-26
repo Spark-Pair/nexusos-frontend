@@ -1,14 +1,16 @@
 import { Button } from '@shared/components/Button'
 import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
+import { PageHeader } from '@shared/components/PageHeader'
 import { SearchField } from '@shared/components/SearchField'
 import { EmptyState } from '@shared/components/states/EmptyState'
+import { ErrorState } from '@shared/components/states/ErrorState'
 import { useToast } from '@shared/components/toastContext'
+import { WorkspaceNavLink } from '@shared/components/WorkspaceNavLink'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
-import { haptic } from '@/shared/motion/haptics'
 import { History, ListChecks, Megaphone, Pencil, Plus, Send, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   broadcastApi,
   type BroadcastList,
@@ -200,15 +202,13 @@ export default function BroadcastPage() {
   )
   const showError = (key: string) =>
     errors[key] ? (
-      <div
-        role="alert"
-        className="mb-4 flex flex-wrap items-center gap-3 text-sm text-rose-600 dark:text-rose-300"
-      >
-        <span>{errors[key]}</span>
-        <Button size="sm" onClick={() => void load()} disabled={loading}>
-          Retry
-        </Button>
-      </div>
+      <ErrorState
+        compact
+        title="Could not load this section"
+        description={errors[key]}
+        actionLabel={loading ? 'Retrying...' : 'Retry'}
+        onAction={() => void load()}
+      />
     ) : null
   if (!views.some((item) => item.id === routeView))
     return <Navigate to="/business/broadcasts/lists" replace />
@@ -217,52 +217,52 @@ export default function BroadcastPage() {
       accountName={session!.data.name}
       actorId={session!.data.id}
       navigation={views.map((item) => (
-        <Link
+        <WorkspaceNavLink
           key={item.id}
           to={`/business/broadcasts/${item.id}`}
-          onClick={() => haptic('light')}
-          aria-current={view === item.id ? 'page' : undefined}
-          className={`workspace-nav-link ${view === item.id ? 'workspace-nav-link-active' : ''}`}
+          icon={item.icon}
+          active={view === item.id}
         >
-          <item.icon className="size-[18px]" aria-hidden="true" />
           {item.id === 'lists'
             ? 'Broadcast lists'
             : item.id === 'compose'
               ? 'New broadcast'
               : 'Broadcast history'}
-        </Link>
+        </WorkspaceNavLink>
       ))}
     >
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">
-            {view === 'lists'
-              ? 'Broadcast lists'
-              : view === 'compose'
-                ? 'New broadcast'
-                : 'Broadcast history'}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {view === 'lists'
-              ? 'Organize customers into reusable audiences.'
-              : view === 'compose'
-                ? 'Share an update directly in eligible customer chats.'
-                : 'Review published updates and unfinished drafts.'}
-          </p>
-        </div>
-        {view === 'lists' && (
-          <Button variant="primary" onClick={() => setEditor(null)}>
-            <Plus className="size-4" aria-hidden="true" />
-            Create list
-          </Button>
-        )}
-        {view === 'history' && (
-          <Button variant="primary" onClick={() => changeView('compose')}>
-            <Megaphone className="size-4" aria-hidden="true" />
-            New broadcast
-          </Button>
-        )}
-      </header>
+      <PageHeader
+        title={
+          view === 'lists'
+            ? 'Broadcast lists'
+            : view === 'compose'
+              ? 'New broadcast'
+              : 'Broadcast history'
+        }
+        description={
+          view === 'lists'
+            ? 'Organize customers into reusable audiences.'
+            : view === 'compose'
+              ? 'Share an update directly in eligible customer chats.'
+              : 'Review published updates and unfinished drafts.'
+        }
+        actions={
+          <>
+            {view === 'lists' && (
+              <Button variant="primary" onClick={() => setEditor(null)}>
+                <Plus className="size-4" aria-hidden="true" />
+                Create list
+              </Button>
+            )}
+            {view === 'history' && (
+              <Button variant="primary" onClick={() => changeView('compose')}>
+                <Megaphone className="size-4" aria-hidden="true" />
+                New broadcast
+              </Button>
+            )}
+          </>
+        }
+      />
       {notice && (
         <div
           role="status"

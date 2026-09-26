@@ -1,8 +1,10 @@
 import { MessageCircle, UserRound } from 'lucide-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { ApplicationFrame } from './ApplicationFrame'
 import { AppSidebar } from './AppSidebar'
 import { MobileTabBar } from './MobileTabBar'
+import { WorkspaceNavLink } from './WorkspaceNavLink'
 import { useUnreadCount } from '@/features/chats/unreadCount'
 import { haptic } from '@/shared/motion/haptics'
 
@@ -33,41 +35,29 @@ export function WorkspaceShell({
   const chatsActive = location.pathname.startsWith('/app/chats')
   const profileActive = location.pathname.startsWith('/app/profile')
   return (
-    <div
-      data-mobile-swipe
-      className="app-canvas min-h-dvh pb-[var(--mobile-app-bar-height)] lg:grid lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-3 lg:p-3 lg:pb-3"
-    >
-      <AppSidebar
-        brandHref="/app/chats"
-        roleLabel={accountKind === 'business' ? 'Business workspace' : 'Customer inbox'}
-        footer={
-          <Link
-            to="/app/profile"
-            onClick={() => haptic('light')}
-            className={'workspace-nav-link ' + (profileActive ? 'workspace-nav-link-active' : '')}
-            aria-current={profileActive ? 'page' : undefined}
-          >
-            <UserRound className="size-[18px]" aria-hidden="true" />
-            <span className="min-w-0">
-              <span className="block truncate">{accountName}</span>
-              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                Profile & settings
+    <ApplicationFrame
+      sidebar={
+        <AppSidebar
+          brandHref="/app/chats"
+          roleLabel={accountKind === 'business' ? 'Business workspace' : 'Customer inbox'}
+          footer={
+            <WorkspaceNavLink to="/app/profile" icon={UserRound} active={profileActive}>
+              <span className="min-w-0">
+                <span className="block truncate">{accountName}</span>
+                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                  Profile & settings
+                </span>
               </span>
-            </span>
-          </Link>
-        }
-      >
-        <Link
-          to="/app/chats"
-          onClick={() => haptic('light')}
-          className={'workspace-nav-link ' + (chatsActive ? 'workspace-nav-link-active' : '')}
-          aria-current={chatsActive ? 'page' : undefined}
+            </WorkspaceNavLink>
+          }
         >
-          <MessageCircle className="size-[18px]" aria-hidden="true" />
-          Chats
-        </Link>
-        {accountKind === 'business' ? navigation : null}
-      </AppSidebar>
+          <WorkspaceNavLink to="/app/chats" icon={MessageCircle} active={chatsActive}>
+            Chats
+          </WorkspaceNavLink>
+          {accountKind === 'business' ? navigation : null}
+        </AppSidebar>
+      }
+    >
       <div className="min-w-0">
         <header className="mobile-page-header sticky top-0 z-20 flex h-16 items-center justify-between px-4 lg:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -122,6 +112,6 @@ export function WorkspaceShell({
           }}
         />
       </div>
-    </div>
+    </ApplicationFrame>
   )
 }

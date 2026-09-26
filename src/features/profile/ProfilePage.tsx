@@ -5,6 +5,7 @@ import { SearchField } from '@shared/components/SearchField'
 import { ThemeToggle } from '@shared/components/ThemeToggle'
 import { useToast } from '@shared/components/toastContext'
 import { WorkspaceShell } from '@shared/components/WorkspaceShell'
+import { WorkspaceNavLink } from '@shared/components/WorkspaceNavLink'
 import {
   ArrowLeft,
   Bell,
@@ -126,30 +127,24 @@ export default function ProfilePage() {
   const businessNavigation =
     session!.data.account_kind === 'business' ? (
       <>
-        <Link
+        <WorkspaceNavLink
           to="/business/broadcasts/lists"
-          onClick={() => haptic('light')}
-          className="workspace-nav-link"
+          icon={ListChecks}
         >
-          <ListChecks className="size-[18px]" aria-hidden="true" />
           Broadcast lists
-        </Link>
-        <Link
+        </WorkspaceNavLink>
+        <WorkspaceNavLink
           to="/business/broadcasts/compose"
-          onClick={() => haptic('light')}
-          className="workspace-nav-link"
+          icon={Megaphone}
         >
-          <Megaphone className="size-[18px]" aria-hidden="true" />
           New broadcast
-        </Link>
-        <Link
+        </WorkspaceNavLink>
+        <WorkspaceNavLink
           to="/business/broadcasts/history"
-          onClick={() => haptic('light')}
-          className="workspace-nav-link"
+          icon={History}
         >
-          <History className="size-[18px]" aria-hidden="true" />
           Broadcast history
-        </Link>
+        </WorkspaceNavLink>
       </>
     ) : null
   const load = useCallback(() => {

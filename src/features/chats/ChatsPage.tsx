@@ -1,4 +1,5 @@
 import { ActionMenu } from '@shared/components/ActionMenu'
+import { ApplicationFrame } from '@shared/components/ApplicationFrame'
 import { AppSidebar } from '@shared/components/AppSidebar'
 import { Button } from '@shared/components/Button'
 import {
@@ -10,10 +11,11 @@ import { Dialog } from '@shared/components/Dialog'
 import { IconButton } from '@shared/components/IconButton'
 import { MobileTabBar, type MobileTabItem } from '@shared/components/MobileTabBar'
 import { useToast } from '@shared/components/toastContext'
+import { WorkspaceNavLink } from '@shared/components/WorkspaceNavLink'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { History, ListChecks, Megaphone, MessageCircle, RefreshCw, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ConnectionsPanel } from './ConnectionsPanel'
 import { ConversationPanel } from './ConversationPanel'
 import { messagingApi } from './messagingApi'
@@ -202,66 +204,45 @@ export default function ChatsPage() {
         { id: 'profile', label: 'Profile', icon: 'profile' }
       ]
   return (
-    <main
-      data-mobile-swipe
+    <ApplicationFrame
       className={
-        'app-canvas inbox-shell inbox-shell-with-sidebar overflow-x-hidden ' +
+        'inbox-shell inbox-shell-with-sidebar overflow-x-hidden ' +
         (!conversationId ? 'max-lg:pb-[var(--mobile-app-bar-height)]' : '')
       }
-    >
-      <AppSidebar
-        brandHref="/app/chats"
-        roleLabel={business ? 'Business workspace' : 'Customer inbox'}
-        footer={
-          <Link to="/app/profile" onClick={() => haptic('light')} className="workspace-nav-link">
-            <UserRound className="size-[18px]" aria-hidden="true" />
-            <span className="min-w-0">
-              <span className="block truncate">{session!.data.name}</span>
-              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                Profile & settings
+      sidebar={
+        <AppSidebar
+          brandHref="/app/chats"
+          roleLabel={business ? 'Business workspace' : 'Customer inbox'}
+          footer={
+            <WorkspaceNavLink to="/app/profile" icon={UserRound}>
+              <span className="min-w-0">
+                <span className="block truncate">{session!.data.name}</span>
+                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                  Profile & settings
+                </span>
               </span>
-            </span>
-          </Link>
-        }
-      >
-        <Link
-          to="/app/chats"
-          className="workspace-nav-link workspace-nav-link-active"
-          onClick={() => haptic('light')}
-          aria-current="page"
+            </WorkspaceNavLink>
+          }
         >
-          <MessageCircle className="size-[18px]" aria-hidden="true" />
-          Chats
-        </Link>
-        {business ? (
-          <div className="grid gap-1">
-            <Link
-              to="/business/broadcasts/lists"
-              onClick={() => haptic('light')}
-              className="workspace-nav-link"
-            >
-              <ListChecks className="size-[18px]" aria-hidden="true" />
-              Broadcast lists
-            </Link>
-            <Link
-              to="/business/broadcasts/compose"
-              onClick={() => haptic('light')}
-              className="workspace-nav-link"
-            >
-              <Megaphone className="size-[18px]" aria-hidden="true" />
-              New broadcast
-            </Link>
-            <Link
-              to="/business/broadcasts/history"
-              onClick={() => haptic('light')}
-              className="workspace-nav-link"
-            >
-              <History className="size-[18px]" aria-hidden="true" />
-              Broadcast history
-            </Link>
-          </div>
-        ) : null}
-      </AppSidebar>
+          <WorkspaceNavLink to="/app/chats" icon={MessageCircle} active>
+            Chats
+          </WorkspaceNavLink>
+          {business ? (
+            <div className="grid gap-1">
+              <WorkspaceNavLink to="/business/broadcasts/lists" icon={ListChecks}>
+                Broadcast lists
+              </WorkspaceNavLink>
+              <WorkspaceNavLink to="/business/broadcasts/compose" icon={Megaphone}>
+                New broadcast
+              </WorkspaceNavLink>
+              <WorkspaceNavLink to="/business/broadcasts/history" icon={History}>
+                Broadcast history
+              </WorkspaceNavLink>
+            </div>
+          ) : null}
+        </AppSidebar>
+      }
+    >
       <aside aria-label="Chat inbox" className="inbox-list flex">
         <ChatListScreen
           mode="app"
@@ -455,6 +436,6 @@ export default function ChatsPage() {
           />
         </div>
       )}
-    </main>
+    </ApplicationFrame>
   )
 }

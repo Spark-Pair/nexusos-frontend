@@ -31,9 +31,20 @@ import {
   X,
   Trash2,
   ArrowDown,
-  Download
+  Download,
+  Play,
+  Pause
 } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent
+} from 'react'
 import { useMediaUrl } from './mediaCache'
 import type { ConversationDetail, ConversationSummary } from './messagingApi'
 import type { QueuedMessage } from './offlineStore'
@@ -105,17 +116,90 @@ function CachedImage({
   return <img src={src} alt={alt} loading="lazy" onLoad={onLoad} className={className} />
 }
 
-function CachedAudio({
-  path,
-  actorId,
-  className
-}: {
-  path: string
-  actorId: string
-  className?: string
-}) {
+function CachedAudio({ path, actorId }: { path: string; actorId: string }) {
   const src = useMediaUrl(path, actorId)
-  return <audio controls src={src} className={className} />
+  return src ? <VoiceNotePlayer src={src} /> : null
+}
+
+function VoiceNotePlayer({ src, className = '' }: { src: string; className?: string }) {
+  const audio = useRef<HTMLAudioElement>(null)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const elapsed = duration ? currentTime / duration : 0
+  const timeLabel = (seconds: number) => {
+    if (!Number.isFinite(seconds)) return '0:00'
+    const value = Math.floor(seconds)
+    return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`
+  }
+  const togglePlayback = () => {
+    if (!audio.current) return
+    if (audio.current.paused) void audio.current.play().catch(() => setPlaying(false))
+    else audio.current.pause()
+  }
+  const seek = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!audio.current || !duration) return
+    audio.current.currentTime = Number(event.target.value)
+    setCurrentTime(audio.current.currentTime)
+  }
+  return (
+    <div className={`voice-note-player ${className}`}>
+      <audio
+        ref={audio}
+        src={src}
+        preload="metadata"
+        className="sr-only"
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        onDurationChange={(event) => setDuration(event.currentTarget.duration)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+      />
+      <button
+        type="button"
+        className="voice-note-play"
+        aria-label={playing ? 'Pause voice message' : 'Play voice message'}
+        onClick={togglePlayback}
+      >
+        {playing ? (
+          <Pause className="size-4" fill="currentColor" />
+        ) : (
+          <Play className="size-4" fill="currentColor" />
+        )}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="voice-note-track">
+          <div className="voice-note-waveform" aria-hidden="true">
+            {Array.from({ length: 30 }, (_, index) => {
+              const height = 5 + ((index * 13 + index * index * 3) % 19)
+              return (
+                <i
+                  key={index}
+                  data-played={duration > 0 && index / 30 <= elapsed ? 'true' : undefined}
+                  style={{ height }}
+                />
+              )
+            })}
+          </div>
+          <input
+            className="voice-note-seek"
+            type="range"
+            aria-label="Voice message position"
+            min={0}
+            max={duration || 1}
+            step={0.1}
+            value={Math.min(currentTime, duration || 0)}
+            disabled={!duration}
+            onChange={seek}
+          />
+        </div>
+        <span className="voice-note-time" aria-live="off">
+          {timeLabel(currentTime)} / {timeLabel(duration)}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function CachedDialogImage({ path, actorId, alt }: { path: string; actorId: string; alt: string }) {
@@ -166,7 +250,7 @@ function QueuedAudioPreview({ audio }: { audio: { blob: Blob; name: string } }) 
     setUrl(next)
     return () => URL.revokeObjectURL(next)
   }, [audio.blob])
-  return url ? <audio controls src={url} className="mb-2 h-10 w-64 max-w-full" /> : null
+  return url ? <VoiceNotePlayer src={url} className="mb-2" /> : null
 }
 
 export function ConversationPanel({
@@ -936,11 +1020,7 @@ export function ConversationPanel({
                     ))}
                   {!message.deletedAt && message.audioUrl && (
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <CachedAudio
-                        path={message.audioUrl}
-                        actorId={currentUserId}
-                        className="h-10 w-64 max-w-full"
-                      />
+                      <CachedAudio path={message.audioUrl} actorId={currentUserId} />
                       <a
                         className="button button-sm button-quiet"
                         href={broadcastMediaUrl(message.audioUrl)}
@@ -1058,11 +1138,7 @@ export function ConversationPanel({
                   ))}
                 {item.audioUrl ? (
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <CachedAudio
-                      path={item.audioUrl}
-                      actorId={currentUserId}
-                      className="h-10 w-64 max-w-full"
-                    />
+                    <CachedAudio path={item.audioUrl} actorId={currentUserId} />
                     <a
                       className="button button-sm button-quiet"
                       href={broadcastMediaUrl(item.audioUrl)}
@@ -1350,11 +1426,19 @@ export function ConversationPanel({
         {currentImage && image ? (
           <div className="space-y-3">
             <div className="relative grid min-h-[45dvh] place-items-center overflow-hidden rounded-2xl bg-slate-950/95">
-              <CachedDialogImage
-                path={currentImage}
-                actorId={currentUserId}
-                alt={`Chat media ${image.index + 1}`}
-              />
+              <a
+                className="grid min-h-[45dvh] w-full place-items-center"
+                href={broadcastMediaUrl(currentImage)}
+                download={downloadName(currentImage, `chat-media-${image.index + 1}.jpg`)}
+                aria-label="Download image"
+                title="Download image"
+              >
+                <CachedDialogImage
+                  path={currentImage}
+                  actorId={currentUserId}
+                  alt={`Chat media ${image.index + 1}. Select to download.`}
+                />
+              </a>
               {image.urls.length > 1 ? (
                 <>
                   <IconButton

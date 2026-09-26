@@ -536,76 +536,87 @@ export default function ProfilePage() {
             {section === 'notifications' ? (
               <form
                 onSubmit={(event) => void save(event)}
-                className="app-panel grid gap-4 p-4 sm:p-6"
+                className="app-panel grid gap-5 p-4 sm:p-6"
               >
-                <div>
-                  <h2 className="text-sm font-medium">Browser notifications</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    NexusOS asks for permission after your first workspace interaction.
-                  </p>
-                </div>
-                <p className="text-sm font-semibold">
-                  {notifications.supported
-                    ? notifications.enabled
-                      ? 'Enabled on this browser'
-                      : notifications.permission === 'denied'
-                        ? 'Blocked by browser settings'
-                        : 'Not enabled yet'
-                    : 'Not supported on this browser'}
-                </p>
-                <div>
-                  <Button
-                    type="button"
-                    disabled={
-                      !notifications.supported ||
-                      notifications.enabled ||
-                      notifications.permission === 'denied'
-                    }
-                    onClick={() => void notifications.enable()}
-                  >
-                    {notifications.enabled ? 'Notifications enabled' : 'Retry notifications'}
-                  </Button>
-                </div>
-                <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
-                  <h2 className="text-sm font-medium">Quiet hours</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Message alerts are paused during these hours. Message delivery is unchanged.
-                  </p>
-                  <Switch
-                    className="mt-3"
-                    label="Pause notifications during quiet hours"
-                    checked={profile.settings.quietHoursEnabled}
-                    onChange={(event) => setting('quietHoursEnabled', event.target.checked)}
-                  />
+                <section className="notification-setting-group">
+                  <div>
+                    <h2 className="text-sm font-semibold">Browser notifications</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                      Receive new message alerts on this device. Your browser controls final
+                      permission.
+                    </p>
+                    <p
+                      role="status"
+                      className="mt-2 inline-flex rounded-full border border-[var(--border-subtle)] bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                    >
+                      {notifications.supported
+                        ? notifications.enabled
+                          ? 'Enabled on this browser'
+                          : notifications.permission === 'denied'
+                            ? 'Blocked in browser settings'
+                            : 'Permission not granted'
+                        : 'Not supported on this browser'}
+                    </p>
+                  </div>
+                  <div className="notification-setting-control">
+                    <Button
+                      type="button"
+                      disabled={
+                        !notifications.supported ||
+                        notifications.enabled ||
+                        notifications.permission === 'denied'
+                      }
+                      onClick={() => void notifications.enable()}
+                    >
+                      {notifications.enabled ? 'Notifications enabled' : 'Enable notifications'}
+                    </Button>
+                  </div>
+                </section>
+                <section className="notification-setting-group">
+                  <div>
+                    <h2 className="text-sm font-semibold">Quiet hours</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                      Pause message alerts on a schedule. Messages will still arrive as usual.
+                    </p>
+                  </div>
+                  <div className="notification-setting-control">
+                    <Switch
+                      label="Pause notifications"
+                      checked={profile.settings.quietHoursEnabled}
+                      onChange={(event) => setting('quietHoursEnabled', event.target.checked)}
+                    />
+                  </div>
                   {profile.settings.quietHoursEnabled ? (
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
                       <Input
-                        label="Start"
+                        label="Start time"
                         type="time"
                         value={profile.settings.quietHoursStart}
                         onChange={(event) => setting('quietHoursStart', event.target.value)}
                       />
                       <Input
-                        label="End"
+                        label="End time"
                         type="time"
                         value={profile.settings.quietHoursEnd}
                         onChange={(event) => setting('quietHoursEnd', event.target.value)}
                       />
-                      <p className="text-xs text-slate-500 sm:col-span-2">
-                        Times use this device's timezone:{' '}
-                        {Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}.
+                      <p className="text-xs text-slate-500 sm:col-span-2 dark:text-slate-400">
+                        Device timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
                       </p>
                     </div>
                   ) : null}
-                </div>
+                </section>
                 {notice ? (
                   <p role="status" className="text-sm text-slate-500">
                     {notice}
                   </p>
                 ) : null}
-                <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Quiet hours use this device's timezone.
+                  </span>
                   <Button type="submit" loading={saving}>
-                    Save notification settings
+                    Save changes
                   </Button>
                 </div>
                 {notifications.error ? (

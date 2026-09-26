@@ -133,9 +133,9 @@ export function ChatListScreen({
   return (
     <div
       ref={rootRef}
-      className={`flex w-full flex-col overflow-hidden border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)]' : 'h-full min-h-0 rounded-[var(--radius-surface)]'}`}
+      className={`chat-list-screen flex w-full flex-col overflow-hidden ${mode === 'preview' ? 'mx-auto min-h-[720px] max-w-[430px] rounded-[var(--radius-surface)] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950' : 'chat-list-screen-app h-full min-h-0'}`}
     >
-      <header className="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4 dark:border-slate-800 sm:px-5 sm:pt-5">
+      <header className="shrink-0 border-b px-4 pb-4 pt-4 sm:px-5 sm:pt-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase text-[var(--color-brand-600)]">NexusOS</p>
@@ -180,7 +180,9 @@ export function ChatListScreen({
           {status}
         </div>
       )}
-      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
+      <div
+        className={`chat-list-rows min-h-0 flex-1 overflow-y-auto ${mode === 'preview' ? 'space-y-1 px-2.5 py-3' : ''}`}
+      >
         {visible.length ? (
           visible.map((chat) => {
             const quickActions = [

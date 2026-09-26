@@ -7,10 +7,16 @@ const settingsSchema = z.object({
   showLastSeen: z.boolean(),
   allowReadReceipts: z.boolean(),
   allowBroadcasts: z.boolean(),
-  quietHoursEnabled: z.boolean(),
-  quietHoursStart: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u),
-  quietHoursEnd: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u),
-  timeZone: z.string(),
+  quietHoursEnabled: z.boolean().default(false),
+  quietHoursStart: z
+    .string()
+    .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)
+    .default('22:00'),
+  quietHoursEnd: z
+    .string()
+    .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)
+    .default('08:00'),
+  timeZone: z.string().default('UTC'),
   updatedAt: z.coerce.date()
 })
 const businessRequestSchema = z.object({

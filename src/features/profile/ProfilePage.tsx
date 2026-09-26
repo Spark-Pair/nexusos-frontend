@@ -17,6 +17,7 @@ import {
   LogOut,
   Megaphone,
   Moon,
+  RefreshCw,
   RotateCw,
   ShieldCheck,
   UserRound
@@ -27,7 +28,8 @@ import { profileApi, type Profile } from './profileApi'
 import { authRoutes } from '@/features/authentication/authRoutes'
 import { useAuthSession } from '@/features/authentication/authSession'
 import { queueOfflineAction, syncOfflineActions } from '@/features/chats/offlineActions'
-import { offlineStore } from '@/features/chats/offlineStore'
+import { offlineStore, type QueuedAction, type QueuedMessage } from '@/features/chats/offlineStore'
+import { syncOutbox } from '@/features/chats/outbox'
 import { inviteApi } from '@/features/invites/inviteApi'
 import { usePushNotifications } from '@/features/notifications/usePushNotifications'
 import { haptic } from '@/shared/motion/haptics'
@@ -62,6 +64,12 @@ const settingsCategories = [
     title: 'Business tools',
     description: 'Invites and business account access',
     icon: BriefcaseBusiness
+  },
+  {
+    id: 'sync',
+    title: 'Sync & storage',
+    description: 'Offline messages and pending changes',
+    icon: RefreshCw
   },
   { id: 'account', title: 'Account', description: 'NexusOS ID and sign-in session', icon: KeyRound }
 ] as const
@@ -99,7 +107,19 @@ export default function ProfilePage() {
   const [inviteUrl, setInviteUrl] = useState('')
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteBusy, setInviteBusy] = useState(false)
+  const [queuedMessages, setQueuedMessages] = useState<QueuedMessage[]>([])
+  const [queuedActions, setQueuedActions] = useState<QueuedAction[]>([])
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
+  const [syncing, setSyncing] = useState(false)
   const notifications = usePushNotifications(token)
+  const refreshSyncQueue = useCallback(async () => {
+    const [messages, actions] = await Promise.all([
+      offlineStore.queued(session!.data.id).catch(() => []),
+      offlineStore.queuedActions(session!.data.id).catch(() => [])
+    ])
+    setQueuedMessages(messages)
+    setQueuedActions(actions)
+  }, [session])
   const closeLogout = useCallback(() => {
     if (!signingOut) setLeaving(false)
   }, [signingOut])
@@ -154,6 +174,23 @@ export default function ProfilePage() {
   useEffect(() => {
     void load()
   }, [load])
+  useEffect(() => {
+    const refresh = () => {
+      setIsOnline(navigator.onLine)
+      void refreshSyncQueue()
+    }
+    void refreshSyncQueue()
+    window.addEventListener('online', refresh)
+    window.addEventListener('offline', refresh)
+    window.addEventListener('nexusos-outbox-updated', refresh)
+    window.addEventListener('nexusos-actions-updated', refresh)
+    return () => {
+      window.removeEventListener('online', refresh)
+      window.removeEventListener('offline', refresh)
+      window.removeEventListener('nexusos-outbox-updated', refresh)
+      window.removeEventListener('nexusos-actions-updated', refresh)
+    }
+  }, [refreshSyncQueue])
   useEffect(() => {
     if (session!.data.account_kind !== 'business') return
     void inviteApi
@@ -276,7 +313,7 @@ export default function ProfilePage() {
   const groupedCategories = [
     { title: 'Personal', ids: ['profile', 'privacy', 'appearance'] },
     { title: 'Workspace', ids: ['notifications', 'business'] },
-    { title: 'Account', ids: ['account'] }
+    { title: 'Account', ids: ['sync', 'account'] }
   ] as const
   const notificationSummary = notifications.enabled
     ? 'Enabled on this browser'
@@ -307,6 +344,49 @@ export default function ProfilePage() {
         )
     }))
     .filter((group) => group.categories.length > 0)
+  const failedSyncCount =
+    queuedMessages.filter((item) => item.status === 'failed').length +
+    queuedActions.filter((item) => item.status === 'failed').length
+  const pendingSyncCount =
+    queuedMessages.filter((item) => item.status !== 'failed').length +
+    queuedActions.filter((item) => item.status !== 'failed').length
+  const syncStatus = !isOnline
+    ? `Offline${pendingSyncCount ? ` - ${pendingSyncCount} changes waiting` : ''}`
+    : failedSyncCount
+      ? `${failedSyncCount} change${failedSyncCount === 1 ? '' : 's'} need attention`
+      : pendingSyncCount
+        ? `Syncing ${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'}`
+        : !serverConfirmed
+          ? 'Using saved data. Changes will sync when connected.'
+          : 'All changes synced'
+  const retrySync = async () => {
+    if (!isOnline || !serverConfirmed || syncing) return
+    setSyncing(true)
+    try {
+      await Promise.all([
+        ...queuedMessages
+          .filter((item) => item.status === 'failed')
+          .map((item) => offlineStore.enqueue({ ...item, status: 'queued', error: '' })),
+        ...queuedActions
+          .filter((item) => item.status === 'failed')
+          .map((item) => offlineStore.updateAction(item.id, { status: 'queued', error: '' }))
+      ])
+      window.dispatchEvent(new Event('nexusos-outbox-updated'))
+      window.dispatchEvent(new Event('nexusos-actions-updated'))
+      await syncOutbox(session!.data.id, token)
+      await syncOfflineActions(session!.data.id, token)
+      await refreshSyncQueue()
+    } catch (error) {
+      toast({
+        title: 'Sync could not finish',
+        description: error instanceof Error ? error.message : 'Please retry when connected.',
+        tone: 'danger'
+      })
+    } finally {
+      setSyncing(false)
+      await refreshSyncQueue()
+    }
+  }
   return (
     <WorkspaceShell
       accountName={session!.data.name}
@@ -592,6 +672,51 @@ export default function ProfilePage() {
                   </div>
                 </section>
               )
+            ) : null}
+
+            {section === 'sync' ? (
+              <section className="app-panel grid gap-4 p-4 sm:p-6">
+                <div>
+                  <h2 className="text-sm font-medium">Sync status</h2>
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className="mt-1 text-sm text-slate-600 dark:text-slate-300"
+                  >
+                    {syncStatus}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[var(--radius-control)] border border-slate-200 p-3 dark:border-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Queued messages</p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {queuedMessages.filter((item) => item.status !== 'failed').length}
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--radius-control)] border border-slate-200 p-3 dark:border-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Other changes</p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {queuedActions.filter((item) => item.status !== 'failed').length}
+                    </p>
+                  </div>
+                </div>
+                {failedSyncCount ? (
+                  <div className="grid gap-2">
+                    <p className="text-sm text-rose-700 dark:text-rose-300">
+                      {failedSyncCount} change{failedSyncCount === 1 ? '' : 's'} failed to sync.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="quiet"
+                      loading={syncing}
+                      disabled={!isOnline || !serverConfirmed}
+                      onClick={() => void retrySync()}
+                    >
+                      <RefreshCw className="size-4" /> Retry failed changes
+                    </Button>
+                  </div>
+                ) : null}
+              </section>
             ) : null}
 
             {section === 'account' ? (

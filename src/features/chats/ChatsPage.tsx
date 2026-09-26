@@ -200,21 +200,6 @@ export default function ChatsPage() {
         },
         { id: 'profile', label: 'Profile', icon: 'profile' }
       ]
-  const failedChanges =
-    messaging.queued.filter((item) => item.status === 'failed').length +
-    messaging.queuedActions.filter((item) => item.status === 'failed').length
-  const pendingChanges =
-    messaging.queued.filter((item) => item.status !== 'failed').length +
-    messaging.queuedActions.filter((item) => item.status !== 'failed').length
-  const syncStatus = !isOnline
-    ? `Offline${pendingChanges ? ` - ${pendingChanges} changes waiting to sync` : ''}`
-    : failedChanges
-      ? `${failedChanges} change${failedChanges === 1 ? '' : 's'} need attention`
-      : pendingChanges
-        ? `Syncing ${pendingChanges} change${pendingChanges === 1 ? '' : 's'}...`
-        : !serverConfirmed
-          ? 'Using saved data. Changes will sync when connected.'
-          : 'All changes synced'
   return (
     <main
       data-mobile-swipe
@@ -351,16 +336,6 @@ export default function ChatsPage() {
                   />
                 </div>
               ) : null}
-              <div className="flex items-center justify-between gap-2">
-                <p role="status" aria-live="polite">
-                  {syncStatus}
-                </p>
-                {failedChanges ? (
-                  <Button size="sm" variant="quiet" onClick={() => void messaging.retryFailed()}>
-                    <RefreshCw className="size-3.5" /> Retry failed
-                  </Button>
-                ) : null}
-              </div>
             </div>
           }
         />

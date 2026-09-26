@@ -321,22 +321,24 @@ export default function ChatsPage() {
           }}
           onQueryChange={setQuery}
           status={
-            <div className="grid gap-2">
-              {messageSearchStatus ? <p role="status">{messageSearchStatus}</p> : null}
-              {messaging.loading ? <p role="status">Loading chats...</p> : null}
-              {messaging.error ? (
-                <div className="flex items-center justify-between gap-2">
-                  <p role="status">{messaging.error}</p>
-                  <IconButton
-                    label="Retry loading chats"
-                    size="sm"
-                    variant="quiet"
-                    icon={<RefreshCw className="size-4" />}
-                    onClick={() => void messaging.refresh()}
-                  />
-                </div>
-              ) : null}
-            </div>
+            messageSearchStatus || messaging.loading || messaging.error ? (
+              <div className="grid gap-2">
+                {messageSearchStatus ? <p role="status">{messageSearchStatus}</p> : null}
+                {messaging.loading ? <p role="status">Loading chats...</p> : null}
+                {messaging.error ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p role="status">{messaging.error}</p>
+                    <IconButton
+                      label="Retry loading chats"
+                      size="sm"
+                      variant="quiet"
+                      icon={<RefreshCw className="size-4" />}
+                      onClick={() => void messaging.refresh()}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null
           }
         />
       </aside>

@@ -10,6 +10,13 @@ interface DialogProps extends PropsWithChildren {
   onClose: () => void
   placement?: 'center' | 'right'
 }
+
+function asHistoryState(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
 export function Dialog({
   children,
   description,
@@ -23,8 +30,17 @@ export function Dialog({
   const descriptionId = useId()
   const panel = useRef<HTMLDivElement>(null)
   const previous = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   useEffect(() => {
     if (!open) return
+    const currentState = asHistoryState(window.history.state as unknown)
+    window.history.pushState(
+      { ...currentState, __nexusDialogId: titleId },
+      '',
+      window.location.href
+    )
+    let dismissedByBack = false
     previous.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -42,7 +58,7 @@ export function Dialog({
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
       if (event.key !== 'Tab') return
@@ -58,18 +74,32 @@ export function Dialog({
         first?.focus()
       }
     }
+    const popstate = () => {
+      if (asHistoryState(window.history.state as unknown).__nexusDialogId === titleId) return
+      dismissedByBack = true
+      onCloseRef.current()
+    }
     document.addEventListener('keydown', keydown)
+    window.addEventListener('popstate', popstate)
     return () => {
       document.removeEventListener('keydown', keydown)
+      window.removeEventListener('popstate', popstate)
       document.body.style.overflow = previousOverflow
       previous.current?.focus()
+      if (
+        !dismissedByBack &&
+        asHistoryState(window.history.state as unknown).__nexusDialogId === titleId
+      )
+        window.history.back()
     }
-  }, [initialFocusSelector, onClose, open])
+  }, [initialFocusSelector, open, titleId])
   if (!open) return null
   return (
     <motion.div
       className={`fixed inset-0 z-50 grid bg-slate-950/40  ${
-        placement === 'right' ? 'justify-items-end' : 'place-items-center p-4'
+        placement === 'right'
+          ? 'justify-items-end'
+          : 'items-end justify-items-center p-0 sm:place-items-center sm:p-4'
       }`}
       role="presentation"
       initial={{ opacity: 0 }}
@@ -84,14 +114,14 @@ export function Dialog({
         className={
           placement === 'right'
             ? 'h-dvh w-full max-w-md overflow-auto border-l border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950'
-            : 'max-h-[85dvh] w-full max-w-xl overflow-auto rounded-[var(--radius-surface)] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950'
+            : 'max-h-[88dvh] w-full max-w-xl overflow-auto rounded-t-[var(--radius-surface)] border border-slate-200 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-slate-950 sm:max-h-[85dvh] sm:rounded-[var(--radius-surface)] sm:pb-5'
         }
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        initial={{ opacity: 0, scale: 0.97, y: 6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.7 }}
       >
         <div className="flex items-start justify-between gap-4">

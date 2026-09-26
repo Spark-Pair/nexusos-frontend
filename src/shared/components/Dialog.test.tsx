@@ -35,4 +35,14 @@ describe('Dialog', () => {
     expect(document.body.style.overflow).toBe('')
     expect(trigger).toHaveFocus()
   })
+
+  it('closes when browser back is pressed while the dialog is open', () => {
+    render(<Fixture />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open dialog' }))
+    window.history.replaceState({}, '', window.location.href)
+
+    fireEvent(window, new PopStateEvent('popstate'))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
 })

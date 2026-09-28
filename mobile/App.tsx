@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import * as SecureStore from 'expo-secure-store'
 import * as Haptics from 'expo-haptics'
 import * as ImagePicker from 'expo-image-picker'
-import * as Notifications from 'expo-notifications'
+import type { NotificationResponse } from 'expo-notifications'
 import * as Device from 'expo-device'
 import Constants from 'expo-constants'
 import * as Google from 'expo-auth-session/providers/google'
@@ -27,7 +27,6 @@ const Tabs = createBottomTabNavigator<TabsParamList>()
 const navigationRef = createNavigationContainerRef<RootStackParamList>()
 const TOKEN_KEY = 'nexusos.session-token'
 const EXPO_PUSH_TOKEN_KEY = 'nexusos.expo-push-token'
-Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) })
 WebBrowser.maybeCompleteAuthSession()
 
 function useSession() {
@@ -39,6 +38,8 @@ function useSession() {
       const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || Constants.easConfig?.projectId || Constants.expoConfig?.extra?.eas?.projectId
       if (!projectId) return
       try {
+        const Notifications = await import('expo-notifications')
+        Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) })
         if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('messages', { name: 'Messages', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 180, 90, 180], lightColor: '#245BFF' })
         let permission = await Notifications.getPermissionsAsync()
         if (permission.status !== 'granted') permission = await Notifications.requestPermissionsAsync()
@@ -327,11 +328,12 @@ function ProfileScreen({ token, user, onSignOut }: { token: string; user: User; 
       setInviteUrl(invite?.inviteUrl || '')
     }).catch(e => { if (active) setNotice(e instanceof Error ? e.message : 'Could not load profile settings.') })
     if (runningInExpoGo) setPermission('Requires the installed development build')
-    else void Notifications.getPermissionsAsync().then(value => { if (active) setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted') }).catch(() => { if (active) setPermission('Unavailable') })
+    else void import('expo-notifications').then(Notifications => Notifications.getPermissionsAsync()).then(value => { if (active) setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted') }).catch(() => { if (active) setPermission('Unavailable') })
     return () => { active = false }
   }, [token, user.account_kind, runningInExpoGo])
   const changeNotifications = async () => {
     if (runningInExpoGo) { Alert.alert('Development build required', 'Remote notifications are not supported in Expo Go. Install the NexusOS development build to enable them.'); return }
+    const Notifications = await import('expo-notifications')
     const value = await Notifications.requestPermissionsAsync()
     setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted')
     if (value.granted) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -383,15 +385,20 @@ function AppShell() {
     return () => subscription.remove()
   }, [])
   useEffect(() => {
-    const openFromResponse = (response: Notifications.NotificationResponse | null) => {
+    const openFromResponse = (response: NotificationResponse | null) => {
       const url = response?.notification.request.content.data?.url
       if (typeof url !== 'string') return
       const match = url.match(/\/chats\/([0-9a-f-]{36})(?:[/?#]|$)/iu)
       if (match?.[1]) setPendingConversation({ id: match[1] })
     }
-    void Notifications.getLastNotificationResponseAsync().then(openFromResponse)
-    const subscription = Constants.appOwnership === 'expo' ? undefined : Notifications.addNotificationResponseReceivedListener(openFromResponse)
-    return () => subscription?.remove()
+    if (Constants.appOwnership === 'expo') return
+    let subscription: { remove: () => void } | undefined
+    let active = true
+    void import('expo-notifications').then(async Notifications => {
+      openFromResponse(await Notifications.getLastNotificationResponseAsync())
+      if (active) subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse)
+    })
+    return () => { active = false; subscription?.remove() }
   }, [])
   useEffect(() => {
     if (!session || !pendingInviteToken || !navReady) return

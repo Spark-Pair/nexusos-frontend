@@ -10,13 +10,41 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sparkpair.nexusos",
-      "associatedDomains": ["applinks:nexusos.sparkpair.dev"]
+      "associatedDomains": [
+        "applinks:nexusos.sparkpair.dev"
+      ]
     },
     "android": {
       "package": "com.sparkpair.nexusos",
       "intentFilters": [
-        { "action": "VIEW", "autoVerify": true, "data": [{ "scheme": "https", "host": "nexusos.sparkpair.dev", "pathPrefix": "/join/" }], "category": ["BROWSABLE", "DEFAULT"] },
-        { "action": "VIEW", "data": [{ "scheme": "nexusos", "host": "join" }], "category": ["BROWSABLE", "DEFAULT"] }
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "nexusos.sparkpair.dev",
+              "pathPrefix": "/join/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "nexusos",
+              "host": "join"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -24,7 +52,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,8 +67,24 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-audio",
-      ["expo-image-picker", { "photosPermission": "NexusOS uses photo access when you choose an image to share in a conversation." }],
-      ["expo-notifications", { "color": "#245BFF" }]
-    ]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "NexusOS uses photo access when you choose an image to share in a conversation."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#245BFF"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0ef1f2f5-2ff6-4138-9a82-357d46e2116a"
+      }
+    },
+    "owner": "hasan.sparkpair"
   }
 }

@@ -34,7 +34,7 @@ function useSession() {
   const [session, setSession] = useState<{ token: string; user: User; invite_connection?: Session['invite_connection'] } | null>(null)
   const [restoring, setRestoring] = useState(true)
   useEffect(() => {
-    if (!session || !Device.isDevice) return
+    if (!session || !Device.isDevice || Constants.appOwnership === 'expo') return
     void (async () => {
       const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || Constants.easConfig?.projectId || Constants.expoConfig?.extra?.eas?.projectId
       if (!projectId) return
@@ -313,6 +313,7 @@ function AudioBubble({ url, colors: c }: { url: string; colors: ReturnType<typeo
 
 function ProfileScreen({ token, user, onSignOut }: { token: string; user: User; onSignOut: () => Promise<void> }) {
   const c = useAppColors()
+  const runningInExpoGo = Constants.appOwnership === 'expo'
   const [working, setWorking] = useState(false)
   const [inviteUrl, setInviteUrl] = useState('')
   const [settings, setSettings] = useState<import('./src/api').ProfileSettings | null>(null)
@@ -325,10 +326,12 @@ function ProfileScreen({ token, user, onSignOut }: { token: string; user: User; 
       setSettings(profile.settings)
       setInviteUrl(invite?.inviteUrl || '')
     }).catch(e => { if (active) setNotice(e instanceof Error ? e.message : 'Could not load profile settings.') })
-    void Notifications.getPermissionsAsync().then(value => { if (active) setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted') }).catch(() => { if (active) setPermission('Unavailable') })
+    if (runningInExpoGo) setPermission('Requires the installed development build')
+    else void Notifications.getPermissionsAsync().then(value => { if (active) setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted') }).catch(() => { if (active) setPermission('Unavailable') })
     return () => { active = false }
-  }, [token, user.account_kind])
+  }, [token, user.account_kind, runningInExpoGo])
   const changeNotifications = async () => {
+    if (runningInExpoGo) { Alert.alert('Development build required', 'Remote notifications are not supported in Expo Go. Install the NexusOS development build to enable them.'); return }
     const value = await Notifications.requestPermissionsAsync()
     setPermission(value.granted ? 'Allowed on this device' : 'Permission not granted')
     if (value.granted) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -387,8 +390,8 @@ function AppShell() {
       if (match?.[1]) setPendingConversation({ id: match[1] })
     }
     void Notifications.getLastNotificationResponseAsync().then(openFromResponse)
-    const subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse)
-    return () => subscription.remove()
+    const subscription = Constants.appOwnership === 'expo' ? undefined : Notifications.addNotificationResponseReceivedListener(openFromResponse)
+    return () => subscription?.remove()
   }, [])
   useEffect(() => {
     if (!session || !pendingInviteToken || !navReady) return
